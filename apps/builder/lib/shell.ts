@@ -365,6 +365,14 @@ h2 { font-size: 20px; line-height: 1.3; margin: 0 0 8px; }
 .open .rest { font-size: 13px; margin: 8px 0 0; opacity: .75; }
 .open .knop { margin: 10px 0 0; }
 .vastgelegd { margin-top: 12px; padding: 12px; border-radius: 4px; background: var(--flow-wash); color: var(--ink); }
+/* De toelichting bij een open vraag is geen beoordeling, dus geen Glow: die betekent in Prism
+   "goed/voltooid". Een rustig vlak met een streep ernaast zegt "lees dit even", en laat de
+   bevestiging erboven de enige gekleurde melding zijn. */
+.toelichting {
+  margin-top: 8px; padding: 12px 14px; border-radius: 4px;
+  background: var(--nadruk-rustig); color: var(--ink-soft);
+  border-left: 3px solid var(--stroke-sterk); font-size: 14.5px;
+}
 
 /* ------------------------------------------------------------------ onderbalk */
 .balk {
@@ -1151,6 +1159,7 @@ export const APP_JS = `
         });
       }
       doos.appendChild(el("div", "vastgelegd", "Je antwoord is vastgelegd."));
+      toonToelichting(doos, a);
       werkTikBij(blok);
       bewaarVoortgang();
       werkBalkBij();
@@ -1165,9 +1174,24 @@ export const APP_JS = `
       veld.disabled = true;
       teller.textContent = limiet - eerder.length + " tekens over";
       doos.appendChild(el("div", "vastgelegd", "Je antwoord is vastgelegd."));
+      toonToelichting(doos, a);
     }
 
     binnen.appendChild(doos);
+  }
+
+  /**
+   * De toelichting bij een open vraag.
+   *
+   * Hij staat in \`feedback.correct\` omdat het schema geen derde vak kent, maar hij betekent hier
+   * niet "je antwoord was goed": bij een open vraag valt er niets goed of fout. Hij beschrijft waar
+   * een sterk antwoord aan voldoet, en wordt daarom altijd getoond zodra er is ingediend — ook bij
+   * het terugkomen op een eerder antwoord, anders zou hij na een herlaadbeurt verdwijnen.
+   */
+  function toonToelichting(doos, a) {
+    var tekstje = a && a.feedback && tekst(a.feedback.correct);
+    if (!tekstje) return;
+    doos.appendChild(el("div", "toelichting", tekstje));
   }
 
   /* ------------------------------------------------------------------- pagina */

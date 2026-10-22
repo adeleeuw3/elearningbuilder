@@ -644,7 +644,9 @@ export type Tekstbron =
   | { soort: "knoop" }
   | { soort: "intro" }
   | { soort: "samenvatting" }
-  | { soort: "sectie"; index: number };
+  | { soort: "sectie"; index: number }
+  /** Een gegenereerde open vraag: zijn tekst staat in `content.vragen[index].vraag`. */
+  | { soort: "vraag"; index: number };
 
 export function tekstbron(knoop: Knoop): Tekstbron | null {
   // Eerst `eigen`: een zelf geplaatst blok draagt zijn tekst altijd zelf, wat zijn soort ook is.
@@ -656,6 +658,13 @@ export function tekstbron(knoop: Knoop): Tekstbron | null {
   if (knoop.soort === "uitleg" && knoop.index !== null) {
     return { soort: "sectie", index: knoop.index };
   }
+  // Een gegenereerde reflectie is een open vraag uit `content.vragen`. Hij leest daar zijn tekst,
+  // net als een sectie: zo blijft er één plek waar die tekst staat en werkt het bewerken in de
+  // blokkenlijst gewoon. Zou hij hem op de knoop dragen, dan liepen de twee uiteen zodra iemand
+  // er één van aanpast.
+  if (knoop.soort === "reflectie" && knoop.index !== null) {
+    return { soort: "vraag", index: knoop.index };
+  }
   return null;
 }
 
@@ -666,6 +675,7 @@ export function leesTekst(knoop: Knoop, content: GeneratedContent): string | nul
   if (bron.soort === "knoop") return knoop.uitvoer ?? "";
   if (bron.soort === "intro") return content.intro;
   if (bron.soort === "samenvatting") return content.samenvatting;
+  if (bron.soort === "vraag") return content.vragen[bron.index]?.vraag ?? "";
   return content.secties[bron.index]?.tekst ?? "";
 }
 
@@ -685,6 +695,13 @@ export function contentMetTekst(
   if (!bron || bron.soort === "knoop") return null;
   if (bron.soort === "intro") return { ...content, intro: tekst };
   if (bron.soort === "samenvatting") return { ...content, samenvatting: tekst };
+  if (bron.soort === "vraag") {
+    if (!content.vragen[bron.index]) return null;
+    return {
+      ...content,
+      vragen: content.vragen.map((v, i) => (i === bron.index ? { ...v, vraag: tekst } : v)),
+    };
+  }
   const sectie = content.secties[bron.index];
   if (!sectie) return null;
   return {

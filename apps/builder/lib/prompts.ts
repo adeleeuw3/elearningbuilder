@@ -48,8 +48,18 @@ Gebruik uitsluitend de gevraagde vraagvormen.
 
 Antwoord UITSLUITEND met geldige JSON:
 {"titel":"...","intro":"...","secties":[{"kop":"...","tekst":"...","type":"uitleg"}],
-"vragen":[{"vraagvorm":"...","vraag":"...","opties":["..."],"correct":0,"feedback":"..."}],
+"vragen":[{"vraagvorm":"...","vorm":"keuze","vraag":"...","opties":["..."],"correct":0,"feedback":"..."}],
 "samenvatting":"..."}
+
+Elke vraag heeft een "vorm":
+- "keuze" — een vraag met antwoordopties en één juist antwoord. Vul "opties" met minstens twee
+  antwoorden en zet in "correct" de index van het juiste.
+- "open" — een reflectievraag waar de cursist in eigen woorden antwoordt. Er is geen goed of fout.
+  Laat "opties" leeg ([]) en zet "correct" op 0. Zet in "feedback" waar een sterk antwoord aan
+  voldoet; die tekst krijgt de cursist te zien nadat hij heeft ingediend.
+
+Gebruik "open" alleen als er om reflectie- of open vragen is gevraagd, en hooguit voor een enkele
+vraag — de rest blijft "keuze".
 
 Maak 2-4 secties en 3-6 vragen, passend bij de gevraagde lengte. Feedback is leerzaam, niet enkel goed/fout.`;
 

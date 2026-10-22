@@ -315,22 +315,6 @@ function blokVan(
     else redenen.push(`Kennischeck "${naam}" heeft nog geen vraag met antwoorden.`);
   }
 
-  /*
-   * Een reflectie is een open vraag, en een open vraag heeft een assessment nodig — daar hangt de
-   * prompt in, en daar kijkt de speler naar om het invoerveld te tonen.
-   *
-   * Zonder dit exporteerde een reflectieblok als een lege sectie: de tekst werd hierboven bewust
-   * uit `content.html` gelaten (hij hoort in de prompt), maar er werd nooit een prompt gebouwd.
-   * Resultaat was een kopje zonder vraag en zonder tekstvak. Niets faalde — er stond alleen niets.
-   *
-   * `long-fill-in` en geen goed antwoord: `publishBlockers` weet dat zo'n vraag niet beoordeeld
-   * wordt en eist er geen `correctResponsesPattern` bij.
-   */
-  if (soort === "open") {
-    const prompt = tekst.trim();
-    if (!prompt) redenen.push(`Reflectie "${naam}" heeft nog geen vraag.`);
-    else blok.assessment = { interactionType: "long-fill-in", prompt: tekstKaart(prompt) };
-  }
 
   if (soort === "quote") {
     if (!tekst.trim()) redenen.push(`Citaat "${naam}" heeft nog geen tekst.`);
@@ -361,6 +345,11 @@ function blokVan(
   if (soort === "open") {
     const vraagtekst = tekst.trim() || knoop.titel.trim();
     if (!vraagtekst) redenen.push(`Open vraag "${naam}" heeft nog geen vraagtekst.`);
+    // Bij een gegenereerde open vraag staat er een toelichting in de content: waar een sterk
+    // antwoord aan voldoet. Die gaat mee in `correct` omdat het schema geen derde vak kent — hij
+    // betekent hier niet "goed geantwoord", en de speler toont hem dan ook altijd.
+    const toelichting =
+      knoop.index !== null ? content.vragen[knoop.index]?.feedback?.trim() : undefined;
     blok.assessment = {
       interactionType: "long-fill-in",
       prompt: tekstKaart(vraagtekst),
@@ -368,6 +357,7 @@ function blokVan(
       // beoordeeld. Een patroon verzinnen waar niets tegenaan gemeten wordt zou de rapportage in
       // de LRS een oordeel laten tonen dat nooit geveld is.
       score: { min: 0, max: 0, correct: 0 },
+      ...(toelichting ? { feedback: { correct: tekstKaart(toelichting) } } : {}),
     };
   }
 

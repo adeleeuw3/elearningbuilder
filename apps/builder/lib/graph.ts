@@ -504,21 +504,28 @@ export function bouwLeerpad(
   });
 
   content.vragen.forEach((vraag, i) => {
+    // Een open vraag is geen kennischeck maar een reflectie: geen opties, geen goed antwoord, geen
+    // oordeel. Hem als `toets` neerzetten maakte hem per definitie onaf en blokkeerde de export van
+    // de hele module — met de melding "heeft nog geen vraag met antwoorden", terwijl het ontbreken
+    // van antwoorden precies de bedoeling was.
+    const open = vraag.vorm === "open";
     plaatsIn(TOETS, {
       id: `v${i}`,
-      soort: "toets",
-      titel: `Vraag ${i + 1}`,
+      soort: open ? "reflectie" : "toets",
+      titel: open ? `Reflectie ${i + 1}` : `Vraag ${i + 1}`,
       fragment: eersteRegel(vraag.vraag),
       index: i,
       eigen: false,
       minuten: schatMinuten(vraag.vraag + " " + vraag.opties.join(" "), SECONDEN_PER_VRAAG),
       klaar: vraagIsKlaar(vraag),
-      // Dezelfde standaardwaarden als een vraag die de auteur zelf neerzet (`nieuweKnoop`).
+      // Dezelfde standaardwaarden als een blok dat de auteur zelf neerzet (`nieuweKnoop`).
       // Zonder werkwoord valt de export terug op `experienced`: de LRS krijgt dan te horen dat de
       // cursist de vraag gezíén heeft, niet dat hij hem beantwoordde — en de controlelijst
       // klaagde erover bij élke gegenereerde module, over blokken die de auteur niet had gemaakt.
       xapiWerkwoord: VERBS.answered,
-      vraagvorm: "meerkeuze",
+      // Een vraagvorm hoort bij een kennischeck; een reflectie heeft er geen. Hem toch zetten zou
+      // een interactietype beloven dat er niet is.
+      ...(open ? { aiBeoordeling: false } : { vraagvorm: "meerkeuze" as const }),
     });
   });
 
