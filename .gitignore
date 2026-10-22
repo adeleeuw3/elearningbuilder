@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.smoke/
+# Next.js: dev writes .next, build/start write .next-build (see apps/studio/next.config.mjs)
+.next/
+.next-build/
+# Een losse buildmap die bij een experiment is blijven staan.
+.next-b2/
+# This is a pnpm workspace — npm/yarn lockfiles are not the source of truth.
+package-lock.json
+yarn.lock
+
+# Secrets - never commit
+.env
+.env.local
+.env*.local
+
+# Lokale opslag van modules en bestanden — nooit committen.
+data/

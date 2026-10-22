@@ -1,0 +1,35 @@
+/* Prism tokens first — everything downstream reads these custom properties. */
+@import "../../../design/prism/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Prism sets the page ground; keep the body transparent so the ambient gradients show. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--canvas);
+}
+
+/* Shared keyframes referenced by @ob/ui (also injected by <PrismApp> for standalone use). */
+@keyframes prism-bloom-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes prism-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}

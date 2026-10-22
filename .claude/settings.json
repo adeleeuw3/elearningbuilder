@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm -w run *)",
+      "Bash(pnpm --filter * run *)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm exec drizzle-kit *)",
+      "Bash(node packages/exporter/dist/secret-scan.js *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(pnpm publish*)"
+    ],
+    "deny": [
+      "Bash(printenv*)",
+      "Bash(env)",
+      "Read(./**/.env*)",
+      "Read(./**/lrs.dev.json)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm -s typecheck && pnpm -s lint",
+            "comment": "Typecheck + lint after edits. Catches missing tenant guards / innerHTML / secret-in-runtime via custom eslint rules."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node packages/exporter/dist/secret-scan.js packages/xapi-runtime/dist 2>/dev/null || true",
+            "comment": "Best-effort secret scan of the built runtime before shell actions. The authoritative gate is in the exporter (assertNoSecrets) and CI."
+          }
+        ]
+      }
+    ]
+  }
+}

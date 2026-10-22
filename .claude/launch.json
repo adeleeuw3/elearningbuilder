@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studio",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "-p", "3000"],
+      "cwd": "apps/studio",
+      "port": 3000
+    },
+    {
+      "name": "builder",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "-p", "3001"],
+      "cwd": "apps/builder",
+      "port": 3001,
+      "autoPort": false
+    }
+  ]
+}

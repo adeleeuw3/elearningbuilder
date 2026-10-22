@@ -1,0 +1,66 @@
+/* Prism tokens first — colours, radius, shadows, ambient glow and the expressive springs
+   all come from the shared token file. Nothing is re-declared here. */
+@import "../../../design/prism/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--canvas);
+}
+
+/* HK Grotesk is licensed. Hanken Grotesk is the closest free stand-in and is self-hosted by
+   next/font at build time, so there is no runtime CDN request. It slots in ahead of Prism's
+   documented fallback stack rather than replacing it. */
+.prism-app {
+  font-family:
+    var(--font-hanken), "HK Grotesk", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+}
+
+/* Keyframes referenced by @ob/ui components. */
+@keyframes prism-bloom-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes prism-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* De aurora op het startscherm. Alleen transform beweegt — motion.md staat niets anders toe — en
+   de klassen die hiernaar verwijzen staan achter `motion-safe`, dus bij prefers-reduced-motion
+   staat de gloed stil. De centrering zit op een wrapper, zodat deze keyframes hem niet
+   overschrijven. */
+@keyframes prism-aurora-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.08);
+  }
+}
+@keyframes prism-aurora-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(3.5%, -2.5%, 0) scale(0.94);
+  }
+}

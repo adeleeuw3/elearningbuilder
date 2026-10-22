@@ -1,0 +1,1027 @@
+<style>
+  /* ============================================================
+     Observation Builder — UI prototype
+     Built on PRISM design system (design/prism/).
+     Tokens copied verbatim from design/prism/tokens.css — do not
+     invent colors, radii or shadows here.
+
+     Semantic mapping for this app (kleur = betekenis):
+       FLOW  → active / busy / selected / connection / primary action
+       GLOW  → completed / validated / explored / published
+       BLOOM → AI generation, optional & new content
+       locked → opacity .55, no glow      rest → flat --elevation
+     ============================================================ */
+
+  /* ---------- PRISM TOKENS (verbatim) ---------- */
+  .prism-app {
+    --flow-from:#5AB8FF; --flow-to:#7DE3FF; --flow-ink:#0B6FBF; --flow-wash:#EAF6FF; --flow-on:#04314F;
+    --grad-flow:linear-gradient(135deg,var(--flow-from),var(--flow-to));
+    --glow-from:#FFD854; --glow-to:#FFB07A; --glow-ink:#B57A12; --glow-wash:#FFF6E0; --glow-on:#4A3200;
+    --grad-glow:linear-gradient(135deg,var(--glow-from),var(--glow-to));
+    --bloom-from:#FF8AD8; --bloom-to:#C77DFF; --bloom-ink:#A5299B; --bloom-wash:#FCEBFA; --bloom-on:#3D0A38;
+    --grad-bloom:linear-gradient(135deg,var(--bloom-from),var(--bloom-to));
+
+    --canvas:#F5F6F9; --card:#FFFFFF; --card-sub:#F1F3F7; --layer:rgba(255,255,255,.68);
+    --stroke:#E2E5EC; --stroke-soft:#EBEDF2;
+    --ink:#1B1E28; --ink-soft:#5C6272; --ink-faint:#9AA0AE;
+
+    --r-control:4px; --r-card:8px; --r-large:12px; --r-pill:999px;
+
+    --elevation:0 1px 2px rgba(27,30,40,.05), 0 6px 18px -10px rgba(27,30,40,.18);
+    --glow-flow:0 0 0 1px rgba(90,184,255,.35), 0 6px 22px -6px rgba(90,184,255,.60);
+    --glow-glow:0 0 0 1px rgba(255,176,122,.40), 0 6px 22px -6px rgba(255,184,90,.60);
+    --glow-bloom:0 0 0 1px rgba(199,125,255,.38), 0 6px 22px -6px rgba(255,138,216,.55);
+
+    --font:"HK Grotesk","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+    --sp-xs:4px; --sp-sm:8px; --sp-md:14px; --sp-lg:22px; --sp-xl:34px; --sp-2xl:52px;
+
+    --ambient:
+      radial-gradient(700px 460px at 0% -8%, rgba(125,227,255,.20), transparent 60%),
+      radial-gradient(760px 520px at 105% 4%, rgba(255,216,84,.14), transparent 55%),
+      radial-gradient(680px 620px at 85% 108%,rgba(199,125,255,.13), transparent 60%);
+
+    --spring-snappy:180ms linear(0, 0.24 4%, 0.66 10%, 0.9 16%, 1.0 24%, 1 100%);
+    --spring-flow:280ms linear(0, 0.18 4%, 0.55 9%, 0.9 15%, 1.06 22%, 1.02 30%, 1 44%, 1 100%);
+    --spring-bloom:420ms linear(0, 0.14 4%, 0.5 9%, 0.94 15%, 1.12 21%, 1.14 25%, 1.02 34%, 0.98 42%, 1 54%, 1 100%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prism-app { --spring-snappy:120ms ease-out; --spring-flow:120ms ease-out; --spring-bloom:120ms ease-out; }
+  }
+
+  /* ---------- root ---------- */
+  * { box-sizing:border-box; }
+  .prism-app {
+    background:var(--canvas); background-image:var(--ambient); background-attachment:fixed;
+    color:var(--ink); font-family:var(--font); -webkit-font-smoothing:antialiased;
+    line-height:1.5; padding:var(--sp-lg) clamp(12px,3vw,var(--sp-xl)) var(--sp-2xl);
+    max-width:1400px; margin:0 auto;
+  }
+  .prism-app :focus-visible { outline:2px solid var(--flow-ink); outline-offset:2px; border-radius:var(--r-control); }
+
+  /* ---------- type roles (Prism §5) ---------- */
+  .t-title { font-size:30px; font-weight:700; letter-spacing:-.02em; margin:0; text-wrap:balance; }
+  .t-sub { font-size:20px; font-weight:600; letter-spacing:-.01em; margin:0; }
+  .t-body { font-size:15px; font-weight:400; }
+  .t-label { font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); }
+  .t-caption { font-size:11px; font-weight:500; letter-spacing:.06em; color:var(--ink-faint); }
+
+  /* ---------- app chrome ---------- */
+  .app-head { display:flex; align-items:center; gap:var(--sp-md); flex-wrap:wrap; margin-bottom:var(--sp-lg); }
+  .logo { display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .logo .mk { width:34px; height:34px; border-radius:var(--r-card); background:var(--grad-flow);
+    box-shadow:var(--glow-flow); display:grid; place-items:center; color:var(--flow-on); font-weight:700; font-size:16px; }
+  .logo b { font-size:16px; font-weight:700; letter-spacing:-.01em; display:block; }
+  .logo .t-caption { display:block; }
+
+  /* NavigationView — vertical rail (Prism §6) */
+  .shell { display:grid; grid-template-columns:210px 1fr; gap:var(--sp-lg); align-items:start; }
+  .navview { background:var(--card); border:1px solid var(--stroke); border-radius:var(--r-large);
+    box-shadow:var(--elevation); padding:var(--sp-sm); position:sticky; top:var(--sp-md); }
+  .navitem { position:relative; display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    border:0; background:transparent; font:inherit; font-size:14px; font-weight:500; color:var(--ink-soft);
+    padding:10px 12px 10px 14px; border-radius:var(--r-control); cursor:pointer;
+    transition:background var(--spring-snappy), color var(--spring-snappy); }
+  .navitem:hover { background:var(--card-sub); color:var(--ink); }
+  .navitem .strip { position:absolute; left:0; top:50%; width:3px; height:0; border-radius:var(--r-pill);
+    background:var(--grad-flow); transform:translateY(-50%);
+    transition:height var(--spring-flow), box-shadow var(--spring-flow); }
+  .navitem[aria-selected="true"] { background:var(--flow-wash); color:var(--flow-ink); font-weight:600; }
+  .navitem[aria-selected="true"] .strip { height:60%; box-shadow:var(--glow-flow); }
+  .navitem .ni { width:20px; text-align:center; font-size:14px; }
+  .nav-sep { height:1px; background:var(--stroke-soft); margin:var(--sp-sm) 6px; }
+
+  /* ---------- screens ---------- */
+  .screen { display:none; }
+  .screen.is-active { display:block; animation:bloom-in var(--spring-bloom) both; }
+  @keyframes bloom-in { from{opacity:0; transform:translateY(12px) scale(.99);} to{opacity:1; transform:none;} }
+  .screen-head { margin-bottom:var(--sp-md); }
+  .screen-head .t-label { display:block; margin-bottom:6px; }
+  .lede { font-size:15px; color:var(--ink-soft); margin:8px 0 0; max-width:74ch; }
+  .lede b { color:var(--ink); font-weight:600; }
+
+  /* ---------- shared components (Prism §6) ---------- */
+  .btn { appearance:none; font:inherit; font-size:14px; font-weight:600; cursor:pointer;
+    background:var(--card); border:1px solid var(--stroke); color:var(--ink);
+    padding:9px 16px; border-radius:var(--r-control); box-shadow:var(--elevation);
+    display:inline-flex; align-items:center; gap:8px; transition:transform var(--spring-snappy), background var(--spring-snappy); }
+  .btn:hover { background:var(--card-sub); }
+  .btn:active { transform:translateY(1px); }
+  .btn-accent { background:var(--grad-flow); color:var(--flow-on); border-color:transparent; box-shadow:var(--glow-flow); }
+  .btn-accent:hover { filter:brightness(1.04); background:var(--grad-flow); }
+  .btn-reward { background:var(--grad-glow); color:var(--glow-on); border-color:transparent; box-shadow:var(--glow-glow); }
+  .btn-reward:hover { filter:brightness(1.04); background:var(--grad-glow); }
+  .btn-subtle { box-shadow:none; background:transparent; }
+  .btn-sm { font-size:12.5px; padding:7px 12px; }
+
+  .chip { display:inline-flex; align-items:center; gap:6px; border-radius:var(--r-pill);
+    padding:4px 11px; font-size:12px; font-weight:600; border:1px solid transparent; }
+  .chip::before { content:""; width:6px; height:6px; border-radius:var(--r-pill); background:currentColor; flex:0 0 auto; }
+  .chip-flow { background:var(--flow-wash); color:var(--flow-ink); }
+  .chip-glow { background:var(--glow-wash); color:var(--glow-ink); }
+  .chip-bloom { background:var(--bloom-wash); color:var(--bloom-ink); }
+  .chip-rest { background:var(--card-sub); color:var(--ink-soft); }
+  .chip-plain::before { display:none; }
+
+  .card { background:var(--card); border:1px solid var(--stroke); border-radius:var(--r-card);
+    box-shadow:var(--elevation); }
+  .panel { background:var(--card); border:1px solid var(--stroke); border-radius:var(--r-large);
+    box-shadow:var(--elevation); overflow:hidden; }
+
+  /* ProgressBar (4px, flow-from → glow-from) */
+  .pbar { height:4px; border-radius:var(--r-pill); background:var(--card-sub); overflow:hidden; }
+  .pbar i { display:block; height:100%; border-radius:var(--r-pill);
+    background:linear-gradient(90deg,var(--flow-from),var(--glow-from)); transition:width var(--spring-flow); }
+
+  /* InfoBar */
+  .infobar { display:flex; align-items:center; gap:12px; background:var(--glow-wash);
+    border:1px solid transparent; box-shadow:var(--glow-glow); border-radius:var(--r-card);
+    padding:12px 14px; animation:bloom-in var(--spring-bloom) both; }
+  .infobar .tile { width:32px; height:32px; border-radius:var(--r-control); background:var(--grad-glow);
+    display:grid; place-items:center; color:var(--glow-on); font-size:15px; flex:0 0 auto; }
+  .infobar .tx { font-size:13.5px; color:var(--glow-on); }
+  .infobar .tx b { display:block; }
+
+  /* ============ WORKFLOW ============ */
+  .wf-app { display:grid; grid-template-columns:60px 1fr 306px; height:660px;
+    border:1px solid var(--stroke); border-radius:var(--r-large); overflow:hidden;
+    box-shadow:var(--elevation); background:var(--card); }
+  .wf-rail { background:var(--card); border-right:1px solid var(--stroke); padding:var(--sp-sm) 0;
+    display:flex; flex-direction:column; align-items:center; gap:var(--sp-xs); }
+  .wf-rail button { width:40px; height:40px; border-radius:var(--r-control); border:0; background:transparent;
+    color:var(--ink-soft); cursor:pointer; display:grid; place-items:center; font-size:16px;
+    transition:background var(--spring-snappy), transform var(--spring-snappy); }
+  .wf-rail button:hover { background:var(--card-sub); }
+  .wf-rail button:active { transform:translateY(1px); }
+  .wf-rail button.on { background:var(--flow-wash); color:var(--flow-ink); box-shadow:var(--glow-flow); }
+  .wf-rail .sep { width:24px; height:1px; background:var(--stroke-soft); margin:6px 0; }
+
+  .wf-mid { position:relative; display:flex; flex-direction:column; min-width:0; background:var(--canvas); }
+  .wf-top { display:flex; align-items:center; gap:10px; padding:10px var(--sp-md);
+    border-bottom:1px solid var(--stroke); background:var(--layer); backdrop-filter:blur(10px); }
+  .wf-file { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:600;
+    background:var(--card); border:1px solid var(--stroke); padding:7px 13px; border-radius:var(--r-control); }
+  .wf-file .k { width:18px; height:18px; border-radius:var(--r-control); background:var(--grad-flow); }
+  .wf-top .sp { margin-left:auto; }
+
+  .wf-scroll { flex:1; overflow:auto; min-height:0; }
+  .wf-canvas { position:relative; width:2040px; height:790px;
+    background-image:radial-gradient(circle, rgba(27,30,40,.07) 1px, transparent 1.4px); background-size:22px 22px; }
+  .wf-edges { position:absolute; inset:0; width:2040px; height:790px; pointer-events:none; overflow:visible; }
+  .wf-edge { fill:none; stroke-width:2.5; stroke-linecap:round; }
+  .wf-edge.animated { stroke-dasharray:7 8; animation:dash 1.1s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset:-15; } }
+
+  /* node — rest = flat elevation; state = ONE glow (Prism §4) */
+  .wf-node { position:absolute; width:216px; background:var(--card); border:1px solid var(--stroke);
+    border-radius:var(--r-card); box-shadow:var(--elevation);
+    transition:transform var(--spring-flow), box-shadow var(--spring-flow), opacity var(--spring-flow); }
+  .wf-node.s-flow  { box-shadow:var(--glow-flow);  border-color:transparent; }
+  .wf-node.s-glow  { box-shadow:var(--glow-glow);  border-color:transparent; }
+  .wf-node.s-bloom { box-shadow:var(--glow-bloom); border-color:transparent; }
+  .wf-node.s-locked { opacity:.55; box-shadow:none; }
+  .wf-node.sel { transform:scale(1.03); box-shadow:var(--glow-flow); border-color:transparent; }
+  .wf-head { display:flex; align-items:center; gap:9px; padding:10px 12px;
+    border-bottom:1px solid var(--stroke-soft); cursor:grab; }
+  .wf-head:active { cursor:grabbing; }
+  .wf-head .ic { width:24px; height:24px; border-radius:var(--r-control); display:grid; place-items:center;
+    font-size:12px; font-weight:700; flex:0 0 auto; background:var(--card-sub); color:var(--ink-soft); }
+  .wf-head .ic.g-flow { background:var(--grad-flow); color:var(--flow-on); }
+  .wf-head .ic.g-glow { background:var(--grad-glow); color:var(--glow-on); }
+  .wf-head .ic.g-bloom { background:var(--grad-bloom); color:var(--bloom-on); }
+  .wf-head .t { font-size:13px; font-weight:600; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wf-body { padding:11px 12px; display:flex; flex-direction:column; gap:9px; font-size:12px; color:var(--ink-soft); }
+  .wf-thumb { border-radius:var(--r-control); overflow:hidden; border:1px solid var(--stroke); aspect-ratio:16/9; }
+  .wf-thumb svg { width:100%; height:100%; display:block; }
+  .wf-quote { font-size:12.5px; color:var(--ink); line-height:1.5; }
+  .wf-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .wf-q { display:flex; align-items:center; gap:7px; font-size:11.5px; }
+  .wf-q .d { width:5px; height:5px; border-radius:var(--r-pill); background:var(--glow-from); flex:0 0 auto; }
+  .wf-fork { display:flex; flex-direction:column; gap:6px; }
+  .wf-fork div { display:flex; align-items:center; justify-content:flex-end; gap:7px; font-size:11.5px; }
+  .port { position:absolute; width:11px; height:11px; border-radius:var(--r-pill); background:var(--card);
+    border:2px solid var(--stroke); z-index:2; }
+  .port.in { left:-6px; } .port.out { right:-6px; }
+  .port.p-flow { border-color:var(--flow-from); } .port.p-glow { border-color:var(--glow-from); }
+  .port.p-bloom { border-color:var(--bloom-from); }
+  .lockpill { position:absolute; top:8px; right:10px; font-size:10px; color:var(--ink-faint); }
+
+  .wf-insp { border-left:1px solid var(--stroke); background:var(--card); overflow-y:auto; }
+  .wf-insp-head { padding:var(--sp-md); border-bottom:1px solid var(--stroke-soft); }
+  .wf-insp-head .t-sub { margin-top:8px; }
+  .wf-insp-sec { padding:var(--sp-md); border-bottom:1px solid var(--stroke-soft); }
+  .wf-insp-sec .t-label { display:block; margin-bottom:9px; }
+  .io { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink-soft); padding:4px 0; }
+  .io i { width:8px; height:8px; border-radius:var(--r-pill); flex:0 0 auto; }
+  .fld { width:100%; background:var(--card); border:1px solid var(--stroke); color:var(--ink); font:inherit;
+    font-size:13.5px; border-radius:var(--r-control); padding:9px 11px; }
+  .fld:focus { border-color:var(--flow-from); box-shadow:var(--glow-flow); outline:none; }
+  textarea.fld { resize:none; line-height:1.55; }
+
+  .wf-tools { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); z-index:20;
+    display:flex; gap:3px; background:var(--layer); backdrop-filter:blur(12px);
+    border:1px solid var(--stroke); border-radius:var(--r-card); padding:6px; box-shadow:var(--elevation); }
+  .tbtn { width:36px; height:36px; border-radius:var(--r-control); border:0; background:transparent;
+    color:var(--ink-soft); cursor:pointer; display:grid; place-items:center; font-size:15px;
+    transition:background var(--spring-snappy); }
+  .tbtn:hover { background:var(--card-sub); }
+  .tbtn.on { background:var(--flow-wash); color:var(--flow-ink); }
+  .tbar-sep { width:1px; background:var(--stroke); margin:5px 3px; }
+  .wf-add { position:absolute; bottom:68px; left:50%; transform:translateX(-50%); width:308px; z-index:25;
+    background:var(--card); border:1px solid var(--stroke); border-radius:var(--r-card);
+    box-shadow:var(--elevation); padding:var(--sp-sm); display:none; }
+  .wf-add.open { display:block; animation:bloom-in var(--spring-bloom) both; }
+  .wf-add .scroll { max-height:264px; overflow-y:auto; }
+  .wf-grp { display:block; margin:10px 8px 4px; }
+  .wf-item { display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:var(--r-control);
+    font-size:13px; cursor:pointer; transition:background var(--spring-snappy); }
+  .wf-item:hover { background:var(--card-sub); }
+  .wf-item i { width:20px; height:20px; border-radius:var(--r-control); flex:0 0 auto; display:grid;
+    place-items:center; font-size:10px; }
+
+  /* ============ SCENE EDITOR ============ */
+  .ed-scroll { overflow-x:auto; border-radius:var(--r-large); }
+  .editor { display:grid; grid-template-columns:252px 1fr 328px; min-width:1060px; height:640px;
+    background:var(--card); border:1px solid var(--stroke); border-radius:var(--r-large);
+    overflow:hidden; box-shadow:var(--elevation); }
+  .pane { display:flex; flex-direction:column; min-height:0; }
+  .pane-l { border-right:1px solid var(--stroke); }
+  .pane-r { border-left:1px solid var(--stroke); overflow-y:auto; }
+  .pane-head { display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:12px var(--sp-md); border-bottom:1px solid var(--stroke-soft); }
+  .pages { display:flex; gap:6px; padding:10px var(--sp-md); border-bottom:1px solid var(--stroke-soft); overflow-x:auto; }
+  .pagechip { flex:0 0 auto; font:inherit; font-size:12.5px; font-weight:500; color:var(--ink-soft);
+    background:var(--card); border:1px solid var(--stroke); padding:6px 11px; border-radius:var(--r-pill); cursor:pointer;
+    transition:background var(--spring-snappy); }
+  .pagechip:hover { background:var(--card-sub); }
+  .pagechip.on { background:var(--flow-wash); color:var(--flow-ink); border-color:transparent; box-shadow:var(--glow-flow); font-weight:600; }
+  .pagechip.add { border-style:dashed; color:var(--ink-faint); }
+
+  .layers { list-style:none; margin:0; padding:var(--sp-sm); overflow-y:auto; flex:1; }
+  .layer { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--r-control);
+    cursor:pointer; font-size:13.5px; border:1px solid transparent;
+    transition:background var(--spring-snappy), box-shadow var(--spring-flow); }
+  .layer:hover { background:var(--card-sub); }
+  .layer.sel { background:var(--flow-wash); box-shadow:var(--glow-flow); }
+  .layer .ic { width:24px; height:24px; border-radius:var(--r-control); display:grid; place-items:center;
+    flex:0 0 auto; background:var(--card-sub); color:var(--ink-soft); font-size:11px; }
+  .layer.sel .ic { background:var(--grad-flow); color:var(--flow-on); }
+  .layer.done .ic { background:var(--grad-glow); color:var(--glow-on); }
+  .layer .nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .canvas { position:relative; display:flex; flex-direction:column; background:var(--canvas); min-width:0; }
+  .cv-tools { position:absolute; top:14px; left:50%; transform:translateX(-50%); z-index:5;
+    display:flex; gap:3px; background:var(--layer); backdrop-filter:blur(12px); border:1px solid var(--stroke);
+    border-radius:var(--r-card); padding:5px; box-shadow:var(--elevation); }
+  .stage-wrap { flex:1; display:grid; place-items:center; padding:58px var(--sp-lg) var(--sp-lg); min-height:0; }
+  .stage { position:relative; width:100%; max-width:650px; aspect-ratio:1000/700;
+    border-radius:var(--r-card); overflow:hidden; box-shadow:var(--elevation); border:1px solid var(--stroke); }
+  .stage svg { display:block; width:100%; height:100%; }
+  .overlay { position:absolute; inset:0; }
+  /* hotspot: rest = neutral outline; selected = Flow; explored = Glow */
+  .hs { position:absolute; padding:0; cursor:pointer; border-radius:var(--r-control);
+    border:2px solid rgba(255,255,255,.85); background:rgba(27,30,40,.14);
+    transition:transform var(--spring-flow), box-shadow var(--spring-flow), background var(--spring-snappy); }
+  .hs:hover { background:rgba(255,255,255,.2); }
+  .hs.circle { border-radius:var(--r-pill); }
+  .hs.sel { border-color:var(--flow-from); background:rgba(90,184,255,.22); box-shadow:var(--glow-flow); z-index:3; }
+  .hs .pin { position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:var(--r-pill);
+    background:var(--card); color:var(--ink-soft); font-size:10.5px; font-weight:700; line-height:20px; text-align:center;
+    box-shadow:var(--elevation); }
+  .hs.sel .pin { background:var(--grad-flow); color:var(--flow-on); }
+  .hs .hnd { position:absolute; width:8px; height:8px; background:var(--card); border:1.5px solid var(--flow-from);
+    border-radius:2px; display:none; }
+  .hs.sel .hnd { display:block; }
+  .hnd.tl{top:-5px;left:-5px;} .hnd.tr{top:-5px;right:-5px;} .hnd.bl{bottom:-5px;left:-5px;} .hnd.br{bottom:-5px;right:-5px;}
+  .cv-foot { display:flex; align-items:center; gap:var(--sp-md); padding:10px var(--sp-md);
+    border-top:1px solid var(--stroke); background:var(--card); font-size:12px; color:var(--ink-faint);
+    font-variant-numeric:tabular-nums; }
+  .cv-foot .rd b { color:var(--flow-ink); font-weight:600; }
+  .cv-foot .sp { margin-left:auto; }
+
+  .psec { padding:var(--sp-md); border-bottom:1px solid var(--stroke-soft); }
+  .psec .t-label { display:block; margin-bottom:9px; }
+  .rt-ed { border:1px solid var(--stroke); border-radius:var(--r-control); overflow:hidden; background:var(--card); }
+  .rt-tools { display:flex; gap:2px; padding:5px 6px; border-bottom:1px solid var(--stroke-soft); color:var(--ink-faint); }
+  .rt-tools span { width:26px; height:24px; display:grid; place-items:center; border-radius:var(--r-control); font-size:12px; }
+  .rt-tools span:hover { background:var(--card-sub); color:var(--ink); }
+  .rt-bd { padding:10px 12px; font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .iri { font-size:11.5px; color:var(--ink-soft); background:var(--card-sub); border:1px solid var(--stroke-soft);
+    border-radius:var(--r-control); padding:9px 10px; margin-top:9px; word-break:break-all; line-height:1.5; }
+  .iri b { color:var(--flow-ink); font-weight:600; }
+  .assess { background:var(--card-sub); border:1px solid var(--stroke-soft); border-radius:var(--r-control); padding:12px; }
+  .assess .q { font-size:13px; margin:0 0 9px; color:var(--ink); font-weight:500; }
+  .opt { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink-soft); padding:4px 0; }
+  .opt .box { width:16px; height:16px; border-radius:var(--r-control); border:1px solid var(--stroke);
+    background:var(--card); flex:0 0 auto; display:grid; place-items:center; font-size:10px; }
+  .opt.ok { color:var(--glow-ink); font-weight:600; }
+  .opt.ok .box { background:var(--grad-glow); border-color:transparent; color:var(--glow-on); }
+
+  /* ============ RUNTIME ============ */
+  .runtime { border-radius:var(--r-large); overflow:hidden; border:1px solid var(--stroke);
+    box-shadow:var(--elevation); background:var(--card); }
+  .rt-top { display:flex; align-items:center; gap:var(--sp-md); padding:var(--sp-md);
+    border-bottom:1px solid var(--stroke-soft); }
+  .rt-top .ttl { font-size:17px; font-weight:600; letter-spacing:-.01em; }
+  .rt-prog { margin-left:auto; display:flex; align-items:center; gap:11px; font-size:12.5px;
+    color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .rt-prog .pbar { width:132px; }
+  .rt-ring { width:30px; height:30px; border-radius:var(--r-pill); flex:0 0 auto;
+    background:conic-gradient(var(--flow-from) 0turn, var(--flow-to) var(--p,0turn), var(--card-sub) var(--p,0turn));
+    display:grid; place-items:center; transition:--p var(--spring-flow); }
+  .rt-ring i { width:22px; height:22px; border-radius:var(--r-pill); background:var(--card);
+    display:grid; place-items:center; font-size:9.5px; font-weight:700; color:var(--flow-ink); }
+  .rt-main { position:relative; display:flex; min-height:520px; background:var(--canvas); }
+  .rt-stagewrap { flex:1; display:grid; place-items:center; padding:var(--sp-xl); min-width:0; }
+  .rt-stage { position:relative; width:100%; max-width:660px; aspect-ratio:1000/700;
+    border-radius:var(--r-card); overflow:hidden; box-shadow:var(--elevation); border:1px solid var(--stroke); }
+  .rt-stage svg { display:block; width:100%; height:100%; }
+  /* learner hotspot: unexplored = Bloom (new/optional) → explored = Glow (completed) */
+  .rt-hs { position:absolute; border:0; background:transparent; cursor:pointer; padding:0;
+    border-radius:var(--r-control); transition:transform var(--spring-flow); }
+  .rt-hs::after { content:""; position:absolute; inset:0; border-radius:inherit; box-shadow:var(--glow-bloom);
+    animation:breathe 2.8s ease-in-out infinite; }
+  .rt-hs.circle, .rt-hs.circle::after { border-radius:var(--r-pill); }
+  .rt-hs:hover { transform:scale(1.04); }
+  .rt-hs.done::after { box-shadow:var(--glow-glow); animation:none; }
+  @keyframes breathe { 0%,100%{opacity:.5;} 50%{opacity:1;} }
+  .rt-num { position:absolute; top:-11px; left:-11px; width:22px; height:22px; border-radius:var(--r-pill);
+    background:var(--grad-bloom); color:var(--bloom-on); font-size:11px; font-weight:700; line-height:22px;
+    text-align:center; box-shadow:var(--elevation); }
+  .rt-hs.done .rt-num { background:var(--grad-glow); color:var(--glow-on); }
+  .rt-fabs { position:absolute; left:var(--sp-lg); bottom:var(--sp-md); display:flex; gap:10px; z-index:4; }
+  .rt-panel { width:0; flex:0 0 auto; background:var(--card); border-left:1px solid var(--stroke);
+    overflow:hidden; transition:width var(--spring-flow); }
+  .rt-panel.open { width:352px; }
+  .rt-panel-in { width:352px; padding:var(--sp-lg); height:100%; overflow-y:auto; position:relative; }
+  .rt-panel .t-label { display:block; color:var(--bloom-ink); }
+  .rt-panel h3 { font-size:22px; font-weight:700; letter-spacing:-.02em; margin:8px 0 12px; }
+  .rt-panel p { font-size:15px; line-height:1.65; color:var(--ink-soft); margin:0 0 var(--sp-md); }
+  .rt-x { position:absolute; top:var(--sp-md); right:var(--sp-md); width:30px; height:30px; padding:0;
+    justify-content:center; }
+  .rt-next { display:flex; gap:9px; }
+
+  /* ============ DESIGN SYSTEM ============ */
+  .ds-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(248px,1fr)); gap:var(--sp-md); }
+  .ds-card { background:var(--card); border:1px solid var(--stroke); border-radius:var(--r-card);
+    box-shadow:var(--elevation); padding:var(--sp-md); }
+  .ds-card .t-label { display:block; margin-bottom:var(--sp-md); }
+  .pair { border-radius:var(--r-card); padding:var(--sp-md); margin-bottom:10px; }
+  .pair .g { height:46px; border-radius:var(--r-control); margin-bottom:10px; display:grid; place-items:center;
+    font-size:13px; font-weight:600; }
+  .pair .meta { font-size:11.5px; display:flex; flex-direction:column; gap:2px; }
+  .pair code { font-size:11px; }
+  .stack { display:flex; flex-direction:column; gap:10px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .scale-row { display:flex; align-items:baseline; gap:12px; padding:6px 0; border-bottom:1px solid var(--stroke-soft); }
+  .scale-row .px { font-size:11px; color:var(--ink-faint); width:64px; flex:0 0 auto; font-variant-numeric:tabular-nums; }
+  .toggle { width:44px; height:22px; border-radius:var(--r-pill); background:var(--card-sub);
+    border:1px solid var(--stroke); position:relative; cursor:pointer; padding:0;
+    transition:background var(--spring-snappy); }
+  .toggle.on { background:var(--grad-flow); border-color:transparent; box-shadow:var(--glow-flow); }
+  .toggle i { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:var(--r-pill);
+    background:#fff; box-shadow:0 1px 3px rgba(27,30,40,.3); transition:transform var(--spring-flow); }
+  .toggle.on i { transform:translateX(22px); }
+  .slider { height:4px; border-radius:var(--r-pill); background:var(--card-sub); position:relative; margin:12px 0; }
+  .slider i { display:block; height:100%; width:62%; border-radius:var(--r-pill); background:var(--grad-bloom); }
+  .slider b { position:absolute; top:50%; left:62%; width:16px; height:16px; border-radius:var(--r-pill);
+    background:#fff; transform:translate(-50%,-50%); box-shadow:var(--glow-bloom); }
+  .pips { display:flex; gap:7px; }
+  .pips i { width:8px; height:8px; border-radius:var(--r-pill); background:var(--card-sub); }
+  .pips i.on { background:var(--grad-glow); box-shadow:var(--glow-glow); }
+  .expander { border:1px solid var(--stroke); border-radius:var(--r-card); overflow:hidden; }
+  .expander summary { padding:11px 13px; font-size:13.5px; font-weight:600; cursor:pointer; list-style:none;
+    display:flex; align-items:center; gap:9px; }
+  .expander summary::-webkit-details-marker { display:none; }
+  .expander summary .cv { transition:transform var(--spring-snappy); color:var(--ink-faint); }
+  .expander[open] summary .cv { transform:rotate(90deg); }
+  .expander .inner { padding:0 13px 13px; font-size:13px; color:var(--ink-soft); }
+  .statecard { border-radius:var(--r-card); border:1px solid var(--stroke); background:var(--card);
+    padding:12px; font-size:12.5px; font-weight:600; box-shadow:var(--elevation); }
+  .statecard.f { box-shadow:var(--glow-flow); border-color:transparent; color:var(--flow-ink); }
+  .statecard.g { box-shadow:var(--glow-glow); border-color:transparent; color:var(--glow-ink); }
+  .statecard.b { box-shadow:var(--glow-bloom); border-color:transparent; color:var(--bloom-ink); }
+  .statecard.l { opacity:.55; box-shadow:none; color:var(--ink-faint); }
+  .mt { margin-top:var(--sp-md); }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns:1fr; }
+    .navview { position:static; display:flex; flex-wrap:wrap; gap:4px; }
+    .navitem { width:auto; }
+  }
+</style>
+
+<div class="prism-app">
+  <div class="app-head">
+    <div class="logo">
+      <div class="mk">O</div>
+      <div><b>Observation Builder</b><span class="t-caption">PRISM · UI PROTOTYPE v3</span></div>
+    </div>
+    <span class="chip chip-glow">Prism design system</span>
+    <button class="btn btn-sm">Share</button>
+    <button class="btn btn-accent btn-sm">Publish</button>
+  </div>
+
+  <div class="shell">
+    <!-- NavigationView (Prism §6) -->
+    <nav class="navview" role="tablist" aria-label="Screens">
+      <button class="navitem" role="tab" aria-selected="true" data-screen="workflow">
+        <span class="strip"></span><span class="ni">⌗</span>Workflow</button>
+      <button class="navitem" role="tab" aria-selected="false" data-screen="editor">
+        <span class="strip"></span><span class="ni">▦</span>Scene editor</button>
+      <button class="navitem" role="tab" aria-selected="false" data-screen="runtime">
+        <span class="strip"></span><span class="ni">◉</span>Learner</button>
+      <div class="nav-sep"></div>
+      <button class="navitem" role="tab" aria-selected="false" data-screen="system">
+        <span class="strip"></span><span class="ni">◐</span>Design system</button>
+    </nav>
+
+    <main>
+      <!-- ==================== WORKFLOW ==================== -->
+      <section class="screen is-active" id="screen-workflow" role="tabpanel">
+        <header class="screen-head">
+          <span class="t-label">Authoring · node canvas</span>
+          <h2 class="t-title">Workflow builder</h2>
+          <p class="lede">Learning flows from node to node. Colour carries state, never decoration:
+            <span class="chip chip-flow">Flow · active</span>
+            <span class="chip chip-glow">Glow · done</span>
+            <span class="chip chip-bloom">Bloom · AI &amp; new</span>
+            — locked nodes simply dim. <b>Drag</b> to rearrange, <b>click</b> to inspect,
+            <b>double-click the Scene node</b> to open the hotspot editor.</p>
+        </header>
+
+        <div class="wf-app">
+          <aside class="wf-rail" aria-label="Node categories">
+            <button class="on" title="Select">▲</button>
+            <span class="sep"></span>
+            <button data-add title="Sources">◧</button>
+            <button data-add title="Generate (AI)">✶</button>
+            <button data-add title="Transform">⇄</button>
+            <button data-add title="Logic">⑂</button>
+            <button data-add title="Composite">▦</button>
+            <span class="sep"></span>
+            <button data-add title="Export">⇥</button>
+            <button data-add title="Assets">▣</button>
+          </aside>
+
+          <div class="wf-mid">
+            <div class="wf-top">
+              <div class="wf-file"><span class="k"></span>Volcano micro-lesson</div>
+              <span class="chip chip-glow">Draft v3</span>
+              <span class="sp"></span>
+              <button class="btn btn-sm btn-subtle">Validate</button>
+              <button class="btn btn-sm">Run pipeline</button>
+              <button class="btn btn-sm btn-accent">Export package</button>
+            </div>
+            <div class="wf-scroll">
+              <div class="wf-canvas" id="wfCanvas"><svg class="wf-edges" id="wfEdges" aria-hidden="true"></svg></div>
+            </div>
+            <div class="wf-add" id="wfAdd">
+              <input class="fld" placeholder="Search nodes or models…" aria-label="Search nodes">
+              <div class="scroll">
+                <span class="t-label wf-grp">Content</span>
+                <div class="wf-item"><i style="background:var(--card-sub)">◧</i>Learning objective</div>
+                <div class="wf-item"><i style="background:var(--grad-bloom)">✶</i>Draft explanatory text</div>
+                <div class="wf-item"><i style="background:var(--card-sub)">⇄</i>Microlearning chunks</div>
+                <span class="t-label wf-grp">Image</span>
+                <div class="wf-item"><i style="background:var(--grad-bloom)">✶</i>Generate illustration</div>
+                <div class="wf-item"><i style="background:var(--card-sub)">⇄</i>Enhance / upscale</div>
+                <span class="t-label wf-grp">Assessment</span>
+                <div class="wf-item"><i style="background:var(--grad-bloom)">✶</i>Generate questions</div>
+                <span class="t-label wf-grp">Logic &amp; composite</span>
+                <div class="wf-item"><i style="background:var(--card-sub)">⑂</i>Branch by audience</div>
+                <div class="wf-item"><i style="background:var(--card-sub)">▦</i>Scene + hotspots</div>
+                <span class="t-label wf-grp">Localisation &amp; export</span>
+                <div class="wf-item"><i style="background:var(--card-sub)">⇄</i>Translate NL ⇄ EN</div>
+                <div class="wf-item"><i style="background:var(--card-sub)">⇥</i>Package xAPI / cmi5</div>
+              </div>
+            </div>
+            <div class="wf-tools" role="toolbar" aria-label="Canvas tools">
+              <button class="tbtn" id="wfAddBtn" title="Add node">＋</button>
+              <button class="tbtn on" title="Select">▲</button>
+              <button class="tbtn" title="Pan">✋</button>
+              <span class="tbar-sep"></span>
+              <button class="tbtn" title="Group">▢</button>
+              <button class="tbtn" title="Connect">⌥</button>
+            </div>
+          </div>
+
+          <aside class="wf-insp" id="wfInsp"></aside>
+        </div>
+      </section>
+
+      <!-- ==================== SCENE EDITOR ==================== -->
+      <section class="screen" id="screen-editor" role="tabpanel">
+        <header class="screen-head">
+          <span class="t-label">Scene node · detail view</span>
+          <h2 class="t-title">Hotspot canvas</h2>
+          <p class="lede">Opens from the <b>Scene + hotspots</b> node. Draw regions on the illustration — the art is the
+            subject, the chrome recedes. Selection glows <b>Flow</b>; completed components glow <b>Glow</b>.
+            Coordinates stay normalized 0–1, so the artifact renders identically at any size.</p>
+        </header>
+
+        <div class="ed-scroll">
+          <div class="editor">
+            <aside class="pane pane-l">
+              <div class="pane-head"><span class="t-label">Components</span><span class="t-caption" id="lyCount"></span></div>
+              <div class="pages">
+                <button class="pagechip on">Anatomy</button>
+                <button class="pagechip">Eruption</button>
+                <button class="pagechip add">+ Page</button>
+              </div>
+              <ul class="layers" id="layers" role="listbox" aria-label="Components"></ul>
+            </aside>
+
+            <section class="canvas">
+              <div class="cv-tools" role="toolbar" aria-label="Draw tools">
+                <button class="tbtn on" title="Select">▲</button>
+                <button class="tbtn" title="Rectangle">▭</button>
+                <button class="tbtn" title="Circle">◯</button>
+                <button class="tbtn" title="Polygon">⬟</button>
+                <span class="tbar-sep"></span>
+                <button class="tbtn" title="Suggest regions (AI)" style="color:var(--bloom-ink)">✶</button>
+                <button class="tbtn" title="Zoom to fit">⤢</button>
+              </div>
+              <div class="stage-wrap"><div class="stage" id="edStage"><div class="overlay" id="edOv"></div></div></div>
+              <div class="cv-foot">
+                <span class="rd" id="coord">Select a component to inspect its region</span>
+                <span class="sp"></span><span>100% · normalized 0–1</span>
+              </div>
+            </section>
+
+            <aside class="pane pane-r" id="props"></aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== RUNTIME ==================== -->
+      <section class="screen" id="screen-runtime" role="tabpanel">
+        <header class="screen-head">
+          <span class="t-label">Exported package · learner view</span>
+          <h2 class="t-title">Inside a stratovolcano</h2>
+          <p class="lede">The same scene running as a static package in a customer's LMS. Unexplored hotspots glow
+            <b>Bloom</b> (new); once explored they turn <b>Glow</b> (completed) — colour tracks progress.
+            Every tap fires an xAPI statement. <b>Tap a hotspot</b> to try it.</p>
+        </header>
+
+        <div class="runtime">
+          <div class="rt-top">
+            <div><span class="t-caption">MICRO-LESSON</span><div class="ttl">Inside a stratovolcano</div></div>
+            <div class="rt-prog">
+              <span id="progT">0 of 6 explored</span>
+              <span class="pbar" style="width:132px"><i id="progF" style="width:0%"></i></span>
+              <span class="rt-ring" id="ring"><i id="ringT">0%</i></span>
+            </div>
+          </div>
+          <div class="rt-main">
+            <div class="rt-stagewrap">
+              <div class="rt-stage" id="rtStage">
+                <div class="overlay" id="rtOv"></div>
+                <div class="rt-fabs">
+                  <button class="btn btn-sm">Guided tour</button>
+                  <button class="btn btn-sm btn-reward">Start assessment</button>
+                </div>
+              </div>
+            </div>
+            <aside class="rt-panel" id="rtPanel" aria-live="polite"><div class="rt-panel-in" id="rtIn"></div></aside>
+          </div>
+        </div>
+
+        <div class="infobar mt" id="rtReward" hidden>
+          <span class="tile">★</span>
+          <span class="tx"><b>Component unlocked</b>Keep exploring to unlock the knowledge check.</span>
+        </div>
+      </section>
+
+      <!-- ==================== DESIGN SYSTEM ==================== -->
+      <section class="screen" id="screen-system" role="tabpanel">
+        <header class="screen-head">
+          <span class="t-label">Foundations</span>
+          <h2 class="t-title">Prism in this app</h2>
+          <p class="lede">Three colour pairs, each with exactly one meaning. Within a pair the two tints always run as a
+            135° gradient — never as hard blocks. Rest is a flat elevation; <b>one glow per element</b>, only where state
+            earns it.</p>
+        </header>
+
+        <div class="ds-grid">
+          <div class="ds-card">
+            <span class="t-label">Flow — active · focus · connection</span>
+            <div class="pair" style="background:var(--flow-wash)">
+              <div class="g" style="background:var(--grad-flow); color:var(--flow-on)">#5AB8FF → #7DE3FF</div>
+              <div class="meta" style="color:var(--flow-ink)"><span>ink #0B6FBF</span><span>wash #EAF6FF</span></div>
+            </div>
+            <div class="row"><span class="chip chip-flow">Running</span><span class="chip chip-flow">Selected</span></div>
+          </div>
+          <div class="ds-card">
+            <span class="t-label">Glow — completed · unlocked</span>
+            <div class="pair" style="background:var(--glow-wash)">
+              <div class="g" style="background:var(--grad-glow); color:var(--glow-on)">#FFD854 → #FFB07A</div>
+              <div class="meta" style="color:var(--glow-ink)"><span>ink #B57A12</span><span>wash #FFF6E0</span></div>
+            </div>
+            <div class="row"><span class="chip chip-glow">Published</span><span class="chip chip-glow">Explored</span></div>
+          </div>
+          <div class="ds-card">
+            <span class="t-label">Bloom — AI · optional · new</span>
+            <div class="pair" style="background:var(--bloom-wash)">
+              <div class="g" style="background:var(--grad-bloom); color:var(--bloom-on)">#FF8AD8 → #C77DFF</div>
+              <div class="meta" style="color:var(--bloom-ink)"><span>ink #A5299B</span><span>wash #FCEBFA</span></div>
+            </div>
+            <div class="row"><span class="chip chip-bloom">Generated</span><span class="chip chip-bloom">Unexplored</span></div>
+          </div>
+          <div class="ds-card">
+            <span class="t-label">Node states</span>
+            <div class="stack">
+              <div class="statecard f">Active · Flow glow</div>
+              <div class="statecard g">Completed · Glow glow</div>
+              <div class="statecard b">AI / new · Bloom glow</div>
+              <div class="statecard">Rest · flat elevation</div>
+              <div class="statecard l">Locked · opacity .55</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-grid mt">
+          <div class="ds-card">
+            <span class="t-label">Type scale · HK Grotesk</span>
+            <div class="scale-row"><span class="px">30 / 700</span><span class="t-title" style="font-size:24px">Title</span></div>
+            <div class="scale-row"><span class="px">20 / 600</span><span class="t-sub">Subtitle</span></div>
+            <div class="scale-row"><span class="px">15 / 400</span><span class="t-body">Body copy</span></div>
+            <div class="scale-row"><span class="px">12 / 600</span><span class="t-label">Label</span></div>
+            <div class="scale-row" style="border:0"><span class="px">11 / 500</span><span class="t-caption">CAPTION</span></div>
+          </div>
+          <div class="ds-card">
+            <span class="t-label">Controls · Fluent geometry</span>
+            <div class="stack">
+              <div class="row">
+                <button class="btn btn-sm">Neutral</button>
+                <button class="btn btn-sm btn-accent">Accent</button>
+                <button class="btn btn-sm btn-reward">Reward</button>
+              </div>
+              <div class="row">
+                <button class="toggle on" id="tg1" aria-label="Toggle" aria-pressed="true"><i></i></button>
+                <span class="t-caption">44×22 · Flow when on</span>
+              </div>
+              <div class="slider"><i></i><b></b></div>
+              <div class="row"><span class="pbar" style="flex:1"><i style="width:66%"></i></span></div>
+              <div class="pips"><i class="on"></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+          <div class="ds-card">
+            <span class="t-label">InfoBar &amp; Expander</span>
+            <div class="stack">
+              <div class="infobar" style="animation:none">
+                <span class="tile">★</span>
+                <span class="tx"><b>Package validated</b>No secrets · activityId matches.</span>
+              </div>
+              <details class="expander">
+                <summary><span class="cv">›</span>Radius &amp; spacing</summary>
+                <div class="inner">Controls 4px · cards 8px · panels 12px · pills 999px.
+                  Spacing 4 / 8 / 14 / 22 / 34 / 52.</div>
+              </details>
+            </div>
+          </div>
+          <div class="ds-card">
+            <span class="t-label">Motion · expressive springs</span>
+            <div class="stack">
+              <div class="statecard" id="dSnappy" style="cursor:pointer">Snappy 180ms — tap me</div>
+              <div class="statecard" id="dFlow" style="cursor:pointer">Flow 280ms — slight overshoot</div>
+              <div class="statecard" id="dBloom" style="cursor:pointer">Bloom 420ms — celebrates</div>
+              <span class="t-caption">Overshoot drops under reduced-motion.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var el = function (t, c) { var e = document.createElement(t); if (c) e.className = c; return e; };
+
+  /* ---------- the scene (placeholder for the generated realistic illustration) ---------- */
+  function sceneSVG(p) {
+    return '<svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs>' +
+      '<linearGradient id="' + p + 'sky" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#2E3A5C"/><stop offset="55%" stop-color="#54486B"/><stop offset="100%" stop-color="#8A6A63"/></linearGradient>' +
+      '<radialGradient id="' + p + 'mag" cx="50%" cy="45%" r="60%">' +
+      '<stop offset="0" stop-color="#FFE9A8"/><stop offset="34%" stop-color="#FFB07A"/>' +
+      '<stop offset="72%" stop-color="#E5551F"/><stop offset="100%" stop-color="#8A2412"/></radialGradient>' +
+      '<linearGradient id="' + p + 'rock" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#5A5266"/><stop offset="100%" stop-color="#332C3D"/></linearGradient>' +
+      '<linearGradient id="' + p + 'lav" x1="0" y1="1" x2="0" y2="0">' +
+      '<stop offset="0" stop-color="#FF8A3D"/><stop offset="100%" stop-color="#FFD854"/></linearGradient>' +
+      '<filter id="' + p + 'gl" x="-60%" y="-60%" width="220%" height="220%">' +
+      '<feGaussianBlur stdDeviation="15" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '<filter id="' + p + 'sf"><feGaussianBlur stdDeviation="10"/></filter>' +
+      '<clipPath id="' + p + 'cn"><path d="M250 560 L485 215 L500 232 L515 215 L750 560 Z"/></clipPath>' +
+      '</defs>' +
+      '<rect width="1000" height="700" fill="url(#' + p + 'sky)"/>' +
+      '<g filter="url(#' + p + 'sf)" fill="#D8D2DE">' +
+      '<ellipse cx="500" cy="150" rx="50" ry="42" opacity=".6"/><ellipse cx="460" cy="116" rx="39" ry="33" opacity=".54"/>' +
+      '<ellipse cx="542" cy="120" rx="35" ry="31" opacity=".54"/><ellipse cx="500" cy="84" rx="35" ry="31" opacity=".45"/>' +
+      '<ellipse cx="472" cy="58" rx="25" ry="23" opacity=".36"/><ellipse cx="526" cy="62" rx="23" ry="21" opacity=".34"/></g>' +
+      '<rect x="0" y="560" width="1000" height="40" fill="#8A6849"/>' +
+      '<rect x="0" y="600" width="1000" height="34" fill="#71533C"/>' +
+      '<rect x="0" y="634" width="1000" height="34" fill="#5C4331"/>' +
+      '<rect x="0" y="668" width="1000" height="40" fill="#49352A"/>' +
+      '<ellipse cx="500" cy="612" rx="174" ry="60" fill="url(#' + p + 'mag)" filter="url(#' + p + 'gl)"/>' +
+      '<ellipse cx="500" cy="612" rx="174" ry="60" fill="url(#' + p + 'mag)"/>' +
+      '<path d="M488 232 C486 330 496 430 486 500 L514 500 C504 430 514 330 512 232 Z" fill="url(#' + p + 'lav)" filter="url(#' + p + 'gl)"/>' +
+      '<path d="M250 560 L485 215 L500 232 L515 215 L750 560 Z" fill="url(#' + p + 'rock)"/>' +
+      '<g clip-path="url(#' + p + 'cn)" stroke="#6B6178" stroke-width="4" fill="none" opacity=".5">' +
+      '<path d="M250 470 L750 470"/><path d="M290 400 L710 400"/><path d="M330 330 L670 330"/></g>' +
+      '<path d="M512 236 L520 236 C600 340 650 450 726 558 L690 558 C628 456 580 356 512 260 Z" fill="url(#' + p + 'lav)" opacity=".95"/>' +
+      '<path d="M485 215 L500 232 L515 215" fill="none" stroke="#FFB07A" stroke-width="3" opacity=".85"/>' +
+      '</svg>';
+  }
+
+  /* ---------- components (normalized 0..1) ---------- */
+  var COMPS = [
+    { id:"ash-plume", n:1, name:"Ash & gas plume", shape:"poly", box:[0.41,0.05,0.20,0.25],
+      clip:"polygon(38% 0,62% 4%,80% 26%,66% 52%,34% 52%,20% 26%)", verb:"experienced", type:"interaction",
+      title:"Ash & gas plume", done:true,
+      body:"A towering column of ash, steam and volcanic gases blasted upward during an explosive eruption. Plumes can rise many kilometres and drift for hundreds more.",
+      alt:"Grey eruption column of ash and gas rising above the summit." },
+    { id:"crater", n:2, name:"Summit crater", shape:"circle", box:[0.455,0.28,0.09,0.085],
+      verb:"experienced", type:"interaction", title:"Summit crater", done:true,
+      body:"The bowl-shaped opening where lava, gas and ash are expelled. Its shape is carved and re-carved by successive eruptions.",
+      alt:"Small bowl-shaped depression at the peak of the cone." },
+    { id:"conduit", n:3, name:"Main conduit", shape:"rect", box:[0.472,0.335,0.056,0.38],
+      verb:"experienced", type:"interaction", title:"Main conduit",
+      body:"The central pipe carrying magma to the surface. As magma rises, pressure drops and dissolved gases expand — accelerating the ascent.",
+      alt:"Vertical glowing channel connecting the magma chamber to the crater." },
+    { id:"magma", n:4, name:"Magma chamber", shape:"circle", box:[0.328,0.788,0.344,0.172],
+      verb:"answered", type:"cmi.interaction", title:"Magma chamber",
+      body:"A vast underground reservoir of molten rock. Buoyant, gas-rich magma collects here under enormous pressure until it finds a path upward.",
+      alt:"Large glowing reservoir of molten rock beneath the volcano.",
+      assess:{ q:"What mainly drives magma upward through the conduit?",
+        opts:["It is colder than surrounding rock","Dissolved gases expand as pressure drops","The crater pulls it upward","Earthquakes push it up"], correct:1 } },
+    { id:"lava", n:5, name:"Lava flow", shape:"poly", box:[0.51,0.335,0.23,0.47],
+      clip:"polygon(2% 0,10% 0,100% 92%,86% 100%)", verb:"experienced", type:"interaction", title:"Lava flow",
+      body:"Once magma reaches the surface it is called lava. It streams downslope, cooling into fresh rock that builds the mountain higher.",
+      alt:"Bright molten lava streaming down the right-hand slope." },
+    { id:"strata", n:6, name:"Rock strata", shape:"rect", box:[0.06,0.815,0.88,0.16],
+      verb:"experienced", type:"interaction", title:"Rock strata",
+      body:"Alternating layers of hardened lava and compacted ash, laid down eruption after eruption — the signature of a stratovolcano.",
+      alt:"Horizontal underground layers of rock and ash." }
+  ];
+  var IRI = "https://xapi.nextlearningvalley.com/acme/artifacts/A1";
+  function pct(b) { return { left:b[0]*100+"%", top:b[1]*100+"%", width:b[2]*100+"%", height:b[3]*100+"%" }; }
+
+  /* ================= WORKFLOW ================= */
+  var NODES = [
+    { id:"N1", state:"glow", cat:"Source · input", grad:"g-glow", icon:"◧", title:"Learning objective", outs:["glow"],
+      body:'<div class="wf-quote">“Explain the parts of a stratovolcano and how it erupts.”</div><span class="chip chip-glow">complete</span>',
+      desc:"The seed of the lesson — everything downstream derives from this one objective.",
+      params:'<div class="row"><span class="chip chip-rest chip-plain">en-US</span><span class="chip chip-rest chip-plain">Bloom: Understand</span></div>' },
+    { id:"N2", state:"bloom", cat:"Generation · AI", grad:"g-bloom", icon:"✶", title:"Generate illustration", ins:["glow"], outs:["bloom"],
+      body:'<div class="wf-thumb" id="thA"></div><div class="wf-row"><span class="chip chip-bloom">AI · realistic</span></div>',
+      desc:"Produces a realistic cross-section from the objective. Provider-abstracted, so the model is swappable.",
+      params:'<span class="t-label">Model</span><select class="fld"><option>Realistic illustration</option><option>Line diagram</option></select>' },
+    { id:"N5", state:"glow", cat:"Transformation", grad:"g-glow", icon:"⇄", title:"Microlearning chunks", ins:["glow"], outs:["glow"],
+      body:'<span class="pbar"><i style="width:100%"></i></span><div class="wf-row"><span class="chip chip-glow">5 chunks · B1</span></div>',
+      desc:"Reformats explanatory text into short, digestible on-screen blocks.",
+      params:'<span class="t-label">Reading level</span><select class="fld"><option>B1 (simplified)</option><option>C1 (detailed)</option></select>' },
+    { id:"N4", state:"flow", cat:"Generation · AI", grad:"g-bloom", icon:"✶", title:"Generate questions", ins:["glow"], outs:["flow"],
+      body:'<div class="wf-q"><span class="d"></span>Which layer holds the magma?</div><div class="wf-q"><span class="d"></span>What drives magma upward?</div>' +
+           '<span class="pbar"><i style="width:72%"></i></span><div class="wf-row"><span class="chip chip-flow">running · 3 of 4</span><span class="chip chip-bloom">AI</span></div>',
+      desc:"Drafts multiple-choice checks from the source, each bound to a rubric item. It is busy, so state (Flow) owns the glow while the AI category shows as a Bloom chip — one glow per element.",
+      params:'<div class="row"><span class="chip chip-rest chip-plain">4 MCQ</span><span class="chip chip-rest chip-plain">rubric R1</span></div>' },
+    { id:"N3", state:"glow", cat:"Composite · scene", grad:"g-flow", icon:"▦", title:"Scene + hotspots", ins:["bloom","glow"], outs:["glow"],
+      body:'<div class="wf-thumb" id="thB"></div><div class="wf-row"><span class="chip chip-glow">6 hotspots</span></div>' +
+           '<button class="btn btn-sm" id="openScene" style="width:100%;justify-content:center">Open scene editor</button>',
+      desc:"Places interactive hotspots on the scene. Double-click the node to open the hotspot editor.",
+      params:'<span class="chip chip-rest chip-plain">normalized 0–1 coords</span>' },
+    { id:"N6", state:"rest", cat:"Logic · branch", grad:"", icon:"⑂", title:"Branch · audience", ins:["glow"], outs:["glow","glow"],
+      body:'<div class="wf-fork"><div>Beginner → simplified <span class="chip chip-rest"></span></div><div>Advanced → detailed <span class="chip chip-rest"></span></div></div>',
+      desc:"Routes the flow by learner level — how you build adaptive, branching paths.",
+      params:'<span class="t-label">Rule</span><span class="chip chip-rest chip-plain">if level = beginner</span>' },
+    { id:"N7", state:"rest", cat:"Output · package", grad:"", icon:"⇥", title:"Package xAPI / cmi5", ins:["glow","flow"], outs:["glow"],
+      body:'<div class="wf-row"><span class="chip chip-flow">xAPI</span><span class="chip chip-rest">cmi5</span></div><span class="t-caption">activityId ✓ · secret-scan ✓</span>',
+      desc:"Builds the static ZIP, runs the secret-scan, and asserts the manifest activityId equals the runtime IRI.",
+      params:'<span class="t-label">Profile</span><select class="fld"><option>xAPI (tincan.xml)</option><option>cmi5 (cmi5.xml)</option></select>' },
+    { id:"N8", state:"locked", cat:"Transformation", grad:"", icon:"⇄", title:"Translate NL ⇄ EN", ins:["glow"], outs:["glow"],
+      body:'<div class="wf-row"><span class="chip chip-rest chip-plain">nl-NL</span><span class="chip chip-rest chip-plain">en-US</span></div>',
+      desc:"Locked until the package validates. Spins out language variants from one source.",
+      params:'<span class="t-caption">Unlocks when Package completes.</span>' },
+    { id:"N9", state:"locked", cat:"Output · sink", grad:"", icon:"⤴", title:"Publish", ins:["glow"],
+      body:'<span class="t-caption">LRS-ready ZIP · immutable v1</span>',
+      desc:"The finished, offline-capable package leaves the pipeline and an export audit entry is written.",
+      params:'<span class="t-caption">Emits audit: export.</span>' }
+  ];
+  var POS = { N1:[36,320], N2:[336,96], N5:[336,318], N4:[336,528], N3:[648,196], N6:[948,318],
+             N7:[1246,262], N8:[1524,262], N9:[1798,318] };
+  var EDGES = [["N1",0,"N2",0,"glow"],["N1",0,"N5",0,"glow"],["N1",0,"N4",0,"glow"],
+    ["N2",0,"N3",0,"bloom"],["N5",0,"N3",1,"glow"],["N3",0,"N6",0,"glow"],
+    ["N6",0,"N7",0,"glow"],["N6",1,"N7",0,"glow"],["N4",0,"N7",1,"flow"],
+    ["N7",0,"N8",0,"rest"],["N8",0,"N9",0,"rest"]];
+  var STROKE = { flow:"#5AB8FF", glow:"#FFB07A", bloom:"#C77DFF", rest:"#D5D9E2" };
+
+  var canvas = $("#wfCanvas"), edgesSvg = $("#wfEdges"), insp = $("#wfInsp"), addMenu = $("#wfAdd");
+  var drag = null, dragOff = null, moved = false;
+
+  function ports(node, n, side, list) {
+    (list || []).forEach(function (t, i) {
+      var p = el("span", "port " + side + " p-" + t); p.id = "p-" + n.id + "-" + side + "-" + i;
+      p.style.top = ((i + 1) / (list.length + 1) * 100) + "%"; p.style.transform = "translateY(-50%)";
+      node.appendChild(p);
+    });
+  }
+  NODES.forEach(function (n) {
+    var node = el("div", "wf-node s-" + n.state); node.id = "wf-" + n.id;
+    node.style.left = POS[n.id][0] + "px"; node.style.top = POS[n.id][1] + "px";
+    node.innerHTML = '<div class="wf-head"><span class="ic ' + n.grad + '">' + n.icon + '</span>' +
+      '<span class="t">' + n.title + '</span></div><div class="wf-body">' + n.body + '</div>' +
+      (n.state === "locked" ? '<span class="lockpill">locked</span>' : "");
+    canvas.appendChild(node);
+    ports(node, n, "in", n.ins); ports(node, n, "out", n.outs);
+    $(".wf-head", node).addEventListener("pointerdown", function (ev) { startDrag(ev, node); });
+    node.addEventListener("click", function () { if (!moved) select(n.id); });
+    node.addEventListener("dblclick", function () { if (n.id === "N3") goEditor(); });
+  });
+  $("#thA").innerHTML = sceneSVG("wa"); $("#thB").innerHTML = sceneSVG("wb");
+  $("#openScene").addEventListener("click", function (e) { e.stopPropagation(); goEditor(); });
+
+  function pcenter(id) {
+    var e = document.getElementById(id); if (!e) return null;
+    var c = canvas.getBoundingClientRect(), r = e.getBoundingClientRect();
+    return { x:r.left - c.left + r.width / 2, y:r.top - c.top + r.height / 2 };
+  }
+  function redraw() {
+    var d = "";
+    EDGES.forEach(function (e) {
+      var a = pcenter("p-" + e[0] + "-out-" + e[1]), b = pcenter("p-" + e[2] + "-in-" + e[3]);
+      if (!a || !b) return;
+      var dx = Math.max(50, Math.abs(b.x - a.x) * .5);
+      d += '<path class="wf-edge' + (e[4] === "flow" ? " animated" : "") + '" stroke="' + STROKE[e[4]] +
+        '"' + (e[4] === "rest" ? ' stroke-dasharray="4 6"' : "") + ' d="M' + a.x + ' ' + a.y + ' C' +
+        (a.x + dx) + ' ' + a.y + ' ' + (b.x - dx) + ' ' + b.y + ' ' + b.x + ' ' + b.y + '"/>';
+    });
+    edgesSvg.innerHTML = d;
+  }
+  function select(id) {
+    NODES.forEach(function (n) { var e = document.getElementById("wf-" + n.id); if (e) e.classList.toggle("sel", n.id === id); });
+    var n = NODES.find(function (x) { return x.id === id; });
+    var tone = { flow:"chip-flow", glow:"chip-glow", bloom:"chip-bloom", rest:"chip-rest", locked:"chip-rest" }[n.state];
+    var io = function (l, dir) {
+      if (!l || !l.length) return '<div class="io" style="color:var(--ink-faint)">' + (dir === "in" ? "no inputs · source" : "no outputs · sink") + '</div>';
+      return l.map(function (t) { return '<div class="io"><i style="background:' + STROKE[t] + '"></i>' + dir + '</div>'; }).join("");
+    };
+    insp.innerHTML =
+      '<div class="wf-insp-head"><span class="chip ' + tone + '">' + n.cat + '</span><h3 class="t-sub">' + n.title + '</h3></div>' +
+      '<div class="wf-insp-sec"><span class="t-label">What it does</span><p style="margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.55">' + n.desc + '</p></div>' +
+      '<div class="wf-insp-sec"><span class="t-label">Parameters</span>' + (n.params || "") + '</div>' +
+      '<div class="wf-insp-sec"><span class="t-label">Connections</span>' + io(n.ins, "in") + io(n.outs, "out") + '</div>' +
+      (id === "N3" ? '<div class="wf-insp-sec"><button class="btn btn-accent" id="inspOpen" style="width:100%;justify-content:center">Open scene editor</button></div>' : "");
+    var b = $("#inspOpen"); if (b) b.addEventListener("click", goEditor);
+  }
+  function startDrag(ev, node) {
+    if (ev.target.closest("button, .port")) return;
+    drag = node; moved = false; node.style.zIndex = 10;
+    var c = canvas.getBoundingClientRect();
+    dragOff = { x:ev.clientX - c.left - node.offsetLeft, y:ev.clientY - c.top - node.offsetTop };
+    window.addEventListener("pointermove", onDrag); window.addEventListener("pointerup", endDrag); ev.preventDefault();
+  }
+  function onDrag(ev) {
+    if (!drag) return; moved = true;
+    var c = canvas.getBoundingClientRect();
+    drag.style.left = Math.max(0, Math.min(ev.clientX - c.left - dragOff.x, 2040 - 216)) + "px";
+    drag.style.top = Math.max(0, Math.min(ev.clientY - c.top - dragOff.y, 790 - 70)) + "px";
+    redraw();
+  }
+  function endDrag() {
+    if (drag) drag.style.zIndex = "";
+    drag = null; window.removeEventListener("pointermove", onDrag); window.removeEventListener("pointerup", endDrag);
+    setTimeout(function () { moved = false; }, 0);
+  }
+  function goEditor() { $('.navitem[data-screen="editor"]').click(); }
+
+  $("#wfAddBtn").addEventListener("click", function (e) { e.stopPropagation(); addMenu.classList.toggle("open"); });
+  Array.prototype.forEach.call(document.querySelectorAll(".wf-rail [data-add]"), function (b) {
+    b.addEventListener("click", function (e) { e.stopPropagation(); addMenu.classList.add("open"); });
+  });
+  document.addEventListener("click", function (e) {
+    if (!addMenu.contains(e.target) && e.target.id !== "wfAddBtn" && !e.target.closest(".wf-rail [data-add]")) addMenu.classList.remove("open");
+  });
+
+  /* ================= SCENE EDITOR ================= */
+  $("#edStage").insertAdjacentHTML("afterbegin", sceneSVG("e"));
+  var layers = $("#layers"), edOv = $("#edOv");
+  $("#lyCount").textContent = COMPS.length + " ON PAGE";
+  COMPS.forEach(function (c) {
+    var li = el("li", "layer" + (c.done ? " done" : "")); li.dataset.id = c.id; li.setAttribute("role", "option");
+    li.innerHTML = '<span class="ic">' + (c.shape === "circle" ? "◯" : c.shape === "poly" ? "⬟" : "▭") + '</span>' +
+      '<span class="nm">' + c.name + '</span>' +
+      (c.assess ? '<span class="chip chip-bloom chip-plain" style="font-size:10px">Q</span>' : "") +
+      (c.done ? '<span class="chip chip-glow" style="font-size:10px;padding:2px 7px"></span>' : "");
+    li.addEventListener("click", function () { pick(c.id); });
+    layers.appendChild(li);
+
+    var hs = el("button", "hs" + (c.shape === "circle" ? " circle" : ""));
+    hs.dataset.id = c.id; hs.setAttribute("aria-label", c.name);
+    var g = pct(c.box); hs.style.left = g.left; hs.style.top = g.top; hs.style.width = g.width; hs.style.height = g.height;
+    if (c.shape === "poly") { hs.style.clipPath = c.clip; hs.style.borderRadius = "0"; }
+    hs.innerHTML = '<span class="pin">' + c.n + '</span><span class="hnd tl"></span><span class="hnd tr"></span>' +
+      '<span class="hnd bl"></span><span class="hnd br"></span>';
+    hs.addEventListener("click", function () { pick(c.id); });
+    edOv.appendChild(hs);
+  });
+  function pick(id) {
+    var c = COMPS.find(function (x) { return x.id === id; });
+    Array.prototype.forEach.call(layers.children, function (li) { li.classList.toggle("sel", li.dataset.id === id); });
+    Array.prototype.forEach.call(edOv.children, function (h) { h.classList.toggle("sel", h.dataset.id === id); });
+    var b = c.box;
+    $("#coord").innerHTML = "region &nbsp;<b>x</b> " + b[0].toFixed(3) + " &nbsp;<b>y</b> " + b[1].toFixed(3) +
+      " &nbsp;<b>w</b> " + b[2].toFixed(3) + " &nbsp;<b>h</b> " + b[3].toFixed(3);
+    var verbs = ["experienced", "answered", "completed"].map(function (v) {
+      return '<span class="chip ' + (v === c.verb ? "chip-flow" : "chip-rest") + '">' + v + '</span>';
+    }).join(" ");
+    var assess = "";
+    if (c.assess) {
+      assess = '<div class="psec"><span class="t-label">Assessment · rubric R1</span><div class="assess"><p class="q">' +
+        c.assess.q + '</p>' + c.assess.opts.map(function (o, i) {
+          return '<div class="opt' + (i === c.assess.correct ? " ok" : "") + '"><span class="box">' +
+            (i === c.assess.correct ? "✓" : "") + '</span>' + o + '</div>';
+        }).join("") + '</div></div>';
+    }
+    $("#props").innerHTML =
+      '<div class="psec"><span class="t-label">Label · learner-facing</span><input class="fld" value="' + c.title + '"></div>' +
+      '<div class="psec"><span class="t-label">Learn content</span><div class="rt-ed">' +
+        '<div class="rt-tools"><span><b>B</b></span><span><i>I</i></span><span>•</span><span>⛓</span><span>▦</span></div>' +
+        '<div class="rt-bd">' + c.body + '</div></div></div>' +
+      '<div class="psec"><span class="t-label">xAPI event on interact</span>' +
+        '<select class="fld" style="margin-bottom:9px"><option>' + c.type + '</option><option>media</option></select>' +
+        '<div class="row">' + verbs + '</div>' +
+        '<div class="iri">' + IRI + '/components/<b>' + c.id + '</b>' + (c.verb === "answered" ? "/q" : "") + '</div></div>' +
+      assess +
+      '<div class="psec"><span class="t-label">Alt description · required</span>' +
+        '<textarea class="fld" rows="2">' + c.alt + '</textarea>' +
+        '<div style="margin-top:9px"><span class="chip chip-glow">WCAG AA · publishable</span></div></div>';
+  }
+
+  /* ================= RUNTIME ================= */
+  $("#rtStage").insertAdjacentHTML("afterbegin", sceneSVG("r"));
+  var rtOv = $("#rtOv"), seen = {}, panel = $("#rtPanel");
+  COMPS.forEach(function (c) {
+    var hs = el("button", "rt-hs" + (c.shape === "circle" ? " circle" : ""));
+    hs.dataset.id = c.id; hs.setAttribute("aria-label", "Explore " + c.name);
+    var g = pct(c.box); hs.style.left = g.left; hs.style.top = g.top; hs.style.width = g.width; hs.style.height = g.height;
+    if (c.shape === "poly") hs.style.clipPath = c.clip;
+    hs.innerHTML = '<span class="rt-num">' + c.n + '</span>';
+    hs.addEventListener("click", function () { open(c, hs); });
+    rtOv.appendChild(hs);
+  });
+  function open(c, hs) {
+    seen[c.id] = true; hs.classList.add("done");
+    var n = Object.keys(seen).length, frac = n / COMPS.length;
+    $("#progT").textContent = n + " of " + COMPS.length + " explored";
+    $("#progF").style.width = (frac * 100) + "%";
+    $("#ring").style.background = "conic-gradient(var(--flow-from) 0turn, var(--flow-to) " + frac +
+      "turn, var(--card-sub) " + frac + "turn)";
+    $("#ringT").textContent = Math.round(frac * 100) + "%";
+    $("#rtIn").innerHTML = '<button class="btn btn-sm rt-x" id="rtX" aria-label="Close">✕</button>' +
+      '<span class="t-label">COMPONENT ' + c.n + ' OF ' + COMPS.length + '</span><h3>' + c.title + '</h3>' +
+      '<p>' + c.body + '</p><div class="rt-next"><button class="btn btn-sm" id="rtC">Close</button>' +
+      '<button class="btn btn-sm ' + (c.assess ? "btn-reward" : "btn-accent") + '">' +
+      (c.assess ? "Answer question" : "Next component") + '</button></div>';
+    panel.classList.add("open");
+    $("#rtX").addEventListener("click", close); $("#rtC").addEventListener("click", close);
+    var rw = $("#rtReward");
+    if (n >= 3) { rw.hidden = false; } // InfoBar celebrates an unlock (Bloom spring)
+  }
+  function close() { panel.classList.remove("open"); }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { close(); addMenu.classList.remove("open"); }
+  });
+
+  /* ================= design-system demos ================= */
+  $("#tg1").addEventListener("click", function () {
+    var on = this.classList.toggle("on"); this.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  [["dSnappy", "snappy"], ["dFlow", "flow"], ["dBloom", "bloom"]].forEach(function (p) {
+    var e = $("#" + p[0]);
+    e.addEventListener("click", function () {
+      e.style.transition = "transform var(--spring-" + p[1] + ")";
+      e.style.transform = "scale(1.06)";
+      setTimeout(function () { e.style.transform = "none"; }, 60);
+    });
+  });
+
+  /* ================= nav ================= */
+  Array.prototype.forEach.call(document.querySelectorAll(".navitem"), function (item) {
+    item.addEventListener("click", function () {
+      document.querySelectorAll(".navitem").forEach(function (i) { i.setAttribute("aria-selected", "false"); });
+      item.setAttribute("aria-selected", "true");
+      document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("is-active"); });
+      $("#screen-" + item.dataset.screen).classList.add("is-active");
+      if (item.dataset.screen === "workflow") requestAnimationFrame(redraw);
+    });
+  });
+
+  select("N3"); pick("magma"); requestAnimationFrame(redraw);
+  window.addEventListener("resize", redraw);
+})();
+</script>
