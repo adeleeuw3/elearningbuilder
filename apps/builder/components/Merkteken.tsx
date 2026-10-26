@@ -30,7 +30,11 @@ export function Merkteken({ className }: { className?: string }) {
 
 export function Woordmerk() {
   return (
-    <span>
+    // `whitespace-nowrap` plus verbergen op smalle schermen: naast het merkteken staat de
+    // navigatie, en op 375px past "Prism Builder" daar niet meer bij. Zonder dit brak de naam over
+    // drie regels en viel "Profiel" buiten beeld. Het merkteken zelf blijft staan — dat is genoeg
+    // om te weten waar je bent.
+    <span className="hidden whitespace-nowrap min-[420px]:block">
       <b className="block text-base font-bold -tracking-[0.01em]">Prism Builder</b>
       <span className="block text-[11px] font-medium tracking-[0.06em] text-ink-faint">
         LEERMODULE BOUWEN

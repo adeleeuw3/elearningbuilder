@@ -348,7 +348,12 @@ export default function InterviewPage() {
 
   if (gesprek.length === 0) {
     return (
-      <Startscherm onStart={startInterview} onZelfBouwen={bouwZelf} onOpen={openBewaard} />
+      <Startscherm
+        onStart={startInterview}
+        onZelfBouwen={bouwZelf}
+        onOpen={openBewaard}
+        navigatie={navigatie}
+      />
     );
   }
 

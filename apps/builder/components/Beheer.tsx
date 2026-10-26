@@ -147,13 +147,24 @@ export function Beheer({ onOpen }: BeheerProps) {
                   {regel.id.slice(0, 8)}
                 </Chip>
                 <div className="flex shrink-0 gap-1.5">
-                  <Button size="sm" disabled={!!bezig} onClick={() => void open(regel.id)}>
+                  {/* De titel staat in de toegankelijke naam, niet alleen in het opschrift. Met
+                      zes modules in de lijst staan er anders achttien knoppen die "Openen",
+                      "Dupliceren" of "Verwijderen" heten en verder niets zeggen — en dan hoort een
+                      schermlezer zes keer "Verwijderen" zonder te weten waarvan. Het whiteboard
+                      doet dit al zo ("Pagina \"Inleiding\" dupliceren"); deze lijst deed het niet. */}
+                  <Button
+                    size="sm"
+                    disabled={!!bezig}
+                    aria-label={`"${regel.titel}" openen`}
+                    onClick={() => void open(regel.id)}
+                  >
                     Openen
                   </Button>
                   <Button
                     size="sm"
                     role_="subtle"
                     disabled={!!bezig}
+                    aria-label={`"${regel.titel}" dupliceren`}
                     onClick={() => void dupliceer(regel)}
                   >
                     Dupliceren
@@ -162,6 +173,7 @@ export function Beheer({ onOpen }: BeheerProps) {
                     size="sm"
                     role_="subtle"
                     disabled={!!bezig}
+                    aria-label={`"${regel.titel}" verwijderen`}
                     onClick={() => setTeVerwijderen(regel)}
                   >
                     Verwijderen

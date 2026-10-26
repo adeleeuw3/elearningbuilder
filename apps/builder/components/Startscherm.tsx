@@ -29,9 +29,17 @@ export interface StartschermProps {
   onZelfBouwen: (onderwerp?: string) => void;
   /** Een bewaarde module openen. */
   onOpen: (id: string, doc: unknown) => void;
+  /**
+   * De knoppen rechtsboven: beheer en profiel.
+   *
+   * Als prop, net als bij `Shell`. Zonder deze stonden ze alléén op de schermen ná het starten, en
+   * was er vanaf hier geen weg naar het beheeroverzicht of je profiel — je moest eerst een module
+   * openen of beginnen om erbij te kunnen.
+   */
+  navigatie?: React.ReactNode;
 }
 
-export function Startscherm({ onStart, onZelfBouwen, onOpen }: StartschermProps) {
+export function Startscherm({ onStart, onZelfBouwen, onOpen, navigatie }: StartschermProps) {
   const [tekst, setTekst] = React.useState("");
   const leeg = tekst.trim().length === 0;
 
@@ -60,7 +68,10 @@ export function Startscherm({ onStart, onZelfBouwen, onOpen }: StartschermProps)
 
       <header className="relative z-10 flex items-center gap-3 px-4 pt-5 sm:px-6">
         <Merkteken />
-        <Woordmerk />
+        <span className="mr-auto">
+          <Woordmerk />
+        </span>
+        {navigatie}
       </header>
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-20 text-center">

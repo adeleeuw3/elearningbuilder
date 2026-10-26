@@ -10,8 +10,13 @@
  * Daarnaast is het het enige in de app zonder ontwerp: een grijze systeembalk midden in een canvas
  * dat verder volledig in Prism staat.
  *
- * De bevestigende knop krijgt de focus bij openen, Escape annuleert, en een klik naast het venster
- * annuleert ook. Annuleren is altijd de veilige kant: wie per ongeluk opent verliest niets.
+ * Escape annuleert, en een klik naast het venster annuleert ook. Annuleren is altijd de veilige
+ * kant: wie per ongeluk opent verliest niets.
+ *
+ * **Waar de focus landt hangt af van `ingrijpend`.** Bij een gewone bevestiging staat hij op de
+ * doorgaan-knop — dat is wat je kwam doen, en Enter maakt het af. Bij iets onomkeerbaars staat hij
+ * op Annuleren: "Verwijderen" onder je vinger krijgen bij een dialoog die net zei dat er geen
+ * prullenbak is, maakt van één misplaatste Enter een gewist bestand.
  */
 import * as React from "react";
 import { createPortal } from "react-dom";
@@ -46,6 +51,7 @@ export function Bevestiging({
   onAnnuleer,
 }: BevestigingProps) {
   const jaRef = React.useRef<HTMLButtonElement | null>(null);
+  const neeRef = React.useRef<HTMLButtonElement | null>(null);
   const [gemonteerd, setGemonteerd] = React.useState(false);
 
   React.useEffect(() => {
@@ -53,13 +59,14 @@ export function Bevestiging({
   }, []);
 
   React.useEffect(() => {
-    jaRef.current?.focus();
+    // Bij iets onomkeerbaars de veilige knop onder de vinger, niet de onherstelbare.
+    (ingrijpend ? neeRef : jaRef).current?.focus();
     const opToets = (e: KeyboardEvent) => {
       if (e.key === "Escape") onAnnuleer();
     };
     window.addEventListener("keydown", opToets);
     return () => window.removeEventListener("keydown", opToets);
-  }, [onAnnuleer, gemonteerd]);
+  }, [onAnnuleer, gemonteerd, ingrijpend]);
 
   if (!gemonteerd) return null;
 
@@ -90,7 +97,7 @@ export function Bevestiging({
           </p>
         )}
         <div className="mt-4 flex justify-end gap-2">
-          <Button size="sm" role_="subtle" onClick={onAnnuleer}>
+          <Button ref={neeRef} size="sm" role_="subtle" onClick={onAnnuleer}>
             Annuleren
           </Button>
           <Button
