@@ -26,6 +26,36 @@ export interface InvoerZoneProps {
 }
 
 export function InvoerZone({ invoer, bezig, onAntwoord }: InvoerZoneProps) {
+  const ankerRef = React.useRef<HTMLDivElement | null>(null);
+
+  /*
+   * De antwoordknoppen zelf in beeld halen, niet het einde van het gesprek.
+   *
+   * De thread scrolt naar zijn eigen laatste bericht, en dat is prima zolang het bericht kort is.
+   * Bij de samenvatting vóór het bouwen is hij dat niet: die vulde het scherm en de knoppen
+   * "Klopt, bouw de module" en "Ik wil iets aanpassen" stonden eronder, buiten beeld. Precies op
+   * het beslissende moment moest je zoeken.
+   *
+   * `block: "end"` en niet "nearest": het gaat erom dat de onderkant van dit blok te zien is.
+   */
+  React.useEffect(() => {
+    // `auto` en niet `smooth`, met opzet. Deze sprong bestaat om een knop bereikbaar te maken,
+    // niet om er aardig uit te zien — en een vloeiende scroll blijkt niet overal te animeren.
+    // Gemeten in de ingebouwde browser: met `smooth` bleef `scrollY` op 0 terwijl de knop op 2159
+    // stond; met `auto` sprong hij naar 1415. Een scroll die afhangt van of de browser meewerkt is
+    // precies het soort stille fout waar hier niets van af mag hangen.
+    ankerRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [invoer]);
+
+  return (
+    <div ref={ankerRef} className="scroll-mb-4">
+      <InvoerVorm invoer={invoer} bezig={bezig} onAntwoord={onAntwoord} />
+    </div>
+  );
+}
+
+/** De vorm die bij `invoer.type` hoort. Los, zodat de scroll-logica hierboven leesbaar blijft. */
+function InvoerVorm({ invoer, bezig, onAntwoord }: InvoerZoneProps) {
   switch (invoer.type) {
     case "single_select":
       return <SingleSelect opties={invoer.opties ?? []} bezig={bezig} onAntwoord={onAntwoord} />;

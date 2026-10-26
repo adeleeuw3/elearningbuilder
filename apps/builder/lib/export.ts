@@ -419,11 +419,25 @@ function assessmentVan(
   if (!vraag.opties[vraag.correct]) return null;
 
   const vorm = knoop.vraagvorm ?? "meerkeuze";
+
+  /*
+   * Bij `true-false` schrijft xAPI de antwoorden voor: "true" of "false", niet een eigen id.
+   * Een LRS die `c0` binnenkrijgt bij een true-false-interactie kan er niets mee — het rapport
+   * toont dan een antwoord dat niet bij de vraag hoort.
+   *
+   * De speler vergelijkt de id van de aangeklikte keuze met `correctResponsesPattern`, dus door
+   * de ids hier te zetten werkt de knop zonder dat de speler iets van deze vorm hoeft te weten.
+   * De vólgorde bepaalt wat waar is: de eerste optie is "true". Dat is dezelfde afspraak als bij
+   * meerkeuze, waar `correct` een index in `opties` is.
+   */
+  const tweeDelig = vorm === "juist-onjuist" && vraag.opties.length === 2;
+  const ids = tweeDelig ? ["true", "false"] : vraag.opties.map((_, i) => `c${i}`);
+
   return {
     interactionType: VRAAGVORM_INTERACTIE[vorm] ?? "other",
     prompt: tekstKaart(vraag.vraag),
-    choices: vraag.opties.map((tekst, i) => ({ id: `c${i}`, text: tekstKaart(tekst) })),
-    correctResponsesPattern: [`c${vraag.correct}`],
+    choices: vraag.opties.map((tekst, i) => ({ id: ids[i] ?? `c${i}`, text: tekstKaart(tekst) })),
+    correctResponsesPattern: [ids[vraag.correct] ?? `c${vraag.correct}`],
     ...(vraag.feedback.trim()
       ? {
           feedback: {

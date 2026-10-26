@@ -54,7 +54,17 @@ export function Shell({
         breed ? "max-w-none" : "max-w-[720px]",
       )}
     >
-      <header className="mb-5 flex items-center gap-3">
+      {/* Plakkend, want anders is de navigatie na een paar beurten weggescrold en kun je
+          halverwege een gesprek niet meer naar het beginscherm, het beheer of je profiel. De
+          achtergrond is dekkend: zonder dat schuift de tekst van het gesprek er zichtbaar
+          onderdoor. `-mx-4` plus `px-4` laat de balk de hele breedte vullen terwijl de inhoud
+          binnen dezelfde marge blijft staan als de rest. */}
+      <header
+        className={cn(
+          "sticky top-0 z-20 -mx-4 mb-5 flex items-center gap-3 border-b border-stroke-soft",
+          "bg-canvas/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6",
+        )}
+      >
         <Merkteken />
         <span className="mr-auto">
           <Woordmerk />

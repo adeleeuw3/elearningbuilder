@@ -220,6 +220,25 @@ export type Vraagvorm =
   | "slepen"
   | "hotspot";
 
+/**
+ * De vraagvorm die het model opschreef, naar de vorm die dit product kent.
+ *
+ * Het model schrijft vrije tekst — "Meerkeuzevragen", "Juist/onjuist", "Waar of niet waar" — en
+ * die hoort bij precies één van de vormen hieronder te landen. Terugvallen op meerkeuze is de
+ * veilige kant op: dat is de vorm die de speler hoe dan ook kan tonen.
+ *
+ * **Alleen de twee vormen die het hele pad aankunnen.** Matchen, slepen, invullen en hotspot staan
+ * wel in `Vraagvorm` — een auteur kan ze met de hand kiezen — maar de generator levert ze niet,
+ * want de inhoud die eruit komt is altijd "kies er één van N". Zou dit hier wél `slepen`
+ * teruggeven, dan meldt de LRS `sequencing` over gegevens die een keuze zijn, en dat is een
+ * rapportage die liegt.
+ */
+export function normaliseerVraagvorm(ruw: string | undefined): Vraagvorm {
+  const t = (ruw ?? "").toLowerCase();
+  if (/juist|onjuist|waar|true|false/.test(t)) return "juist-onjuist";
+  return "meerkeuze";
+}
+
 export const VRAAGVORM_LABEL: Record<Vraagvorm, string> = {
   meerkeuze: "Meerkeuze",
   "juist-onjuist": "Juist/onjuist",
@@ -525,7 +544,9 @@ export function bouwLeerpad(
       xapiWerkwoord: VERBS.answered,
       // Een vraagvorm hoort bij een kennischeck; een reflectie heeft er geen. Hem toch zetten zou
       // een interactietype beloven dat er niet is.
-      ...(open ? { aiBeoordeling: false } : { vraagvorm: "meerkeuze" as const }),
+      ...(open
+        ? { aiBeoordeling: false }
+        : { vraagvorm: normaliseerVraagvorm(vraag.vraagvorm) }),
     });
   });
 
