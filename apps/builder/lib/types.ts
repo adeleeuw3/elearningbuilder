@@ -185,6 +185,18 @@ export const SectieSchema = z
     kop: z.string(),
     tekst: z.string(),
     type: z.literal("uitleg"),
+    /**
+     * Waar een afbeelding bij deze sectie over moet gaan — in het Engels.
+     *
+     * Pexels en Pixabay indexeren vrijwel alleen Engelse trefwoorden. Een Nederlandse kop levert
+     * daardoor ruis: "begin stoel basis houding" gaf flamingo, law, button en winter; "office
+     * chair posture" gaf een bureaustoel. Het model levert de term daarom mee, want het kent de
+     * inhoud van de sectie en de vertaling kost niets extra.
+     *
+     * `.optional()` en niet `.default()`: een module die van vóór dit veld komt mist hem gewoon,
+     * en dan valt de beeldkeuze terug op de kop.
+     */
+    beeldterm: z.string().optional(),
   })
   .strict();
 
@@ -234,7 +246,7 @@ export const GesprekRegelSchema = z
   .strict();
 export type GesprekRegel = z.infer<typeof GesprekRegelSchema>;
 
-export type Fase = "interview" | "genereren" | "resultaat";
+export type Fase = "interview" | "genereren" | "beeld" | "resultaat";
 
 export interface GenerationState {
   fase: Fase;
@@ -314,6 +326,47 @@ export const SchrijfAntwoordSchema = z.object({ varianten: z.array(z.string()) }
 
 export type SchrijfRequest = z.infer<typeof SchrijfRequestSchema>;
 export type SchrijfAntwoord = z.infer<typeof SchrijfAntwoordSchema>;
+
+/* ------------------------------------------------------------------ media zoeken */
+
+/**
+ * Eén zoekresultaat van een stockbron.
+ *
+ * Dit schema staat hier en niet in `media-zoek.ts`: dat bestand is pure vertaling zonder
+ * afhankelijkheden, en de contracten van de API horen bij elkaar te staan.
+ *
+ * **Waarom het succespad óók gevalideerd wordt.** Dit antwoord komt van onze eigen route, maar die
+ * route bouwt het uit wat drie externe bronnen teruggeven. Verandert een provider een veldnaam,
+ * dan komt er geen foutmelding maar een kandidaat zonder plaatje — en zoiets zie je pas als een
+ * auteur ertegenaan loopt. Niet `.strict()`, want een bron die een veld bíjzet mag de hele lijst
+ * niet laten sneuvelen.
+ */
+export const KandidaatSchema = z.object({
+  id: z.string(),
+  bron: z.enum(["pexels", "pixabay", "youtube"]),
+  soort: z.enum(["afbeelding", "video", "externe-video"]),
+  titel: z.string(),
+  voorbeeld: z.string(),
+  bestandUrl: z.string().optional(),
+  paginaUrl: z.string(),
+  maker: z.string(),
+  makerUrl: z.string().optional(),
+  licentie: z.string(),
+  breedte: z.number().optional(),
+  hoogte: z.number().optional(),
+  seconden: z.number().optional(),
+  alt: z.string().optional(),
+  videoId: z.string().optional(),
+});
+
+export const ZoekantwoordSchema = z.object({
+  term: z.string(),
+  kandidaten: z.record(z.string(), z.array(KandidaatSchema)),
+  bronnen: z.array(z.enum(["pexels", "pixabay", "youtube"])),
+  ontbrekend: z.array(z.enum(["pexels", "pixabay", "youtube"])),
+});
+
+export type Zoekantwoord = z.infer<typeof ZoekantwoordSchema>;
 
 /** Foutvorm die beide routes teruggeven — de frontend toont `bericht` letterlijk. */
 export interface ApiFout {

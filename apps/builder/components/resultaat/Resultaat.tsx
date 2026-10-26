@@ -53,6 +53,7 @@ import {
   plekVanBlok,
   type Pagina,
 } from "../../lib/paginas";
+import { metBeelden, type Beeldkeuzes } from "../../lib/beeldkeuze";
 import { migreerLeerpad } from "../../lib/migratie";
 import { nieuwId } from "../../lib/opslag";
 import {
@@ -80,10 +81,13 @@ export interface ResultaatProps {
   beginLeerpad?: Leerpad;
   /** Het id waaronder deze module bewaard is; null zolang hij nieuw is. */
   projectId?: string | null;
+  /** Beelden die de auteur na het bouwen bij de secties koos, per sectie-index. */
+  beelden?: Beeldkeuzes;
 }
 
 export function Resultaat({
   spec,
+  beelden,
   content,
   onChange,
   onNieuweModule,
@@ -113,7 +117,13 @@ export function Resultaat({
   const [leerpad, setLeerpad] = React.useState<Leerpad>(() =>
     // `migreerLeerpad` haalt de oude Pagina- en Cursusknopen eruit en ketent hun blokken aan
     // elkaar. Idempotent, dus een project dat al om is gaat er ongewijzigd doorheen.
-    beginLeerpad ? voorzieVanSeeds(migreerLeerpad(beginLeerpad)) : leerpadUitContent(content),
+    //
+    // `metBeelden` zet de beelden erop die de auteur na het bouwen bij de secties koos. Alleen hier,
+    // bij het aanmaken: een opgeslagen project draagt zijn beelden al, en ze er bij elke render
+    // overheen zetten zou een vervangen beeld telkens terugdraaien.
+    beginLeerpad
+      ? voorzieVanSeeds(migreerLeerpad(beginLeerpad))
+      : metBeelden(leerpadUitContent(content), beelden ?? {}),
   );
   /**
    * De identiteit van deze module — vanaf het moment dat ze bestaat, niet pas bij het eerste

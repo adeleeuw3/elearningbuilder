@@ -12,6 +12,7 @@ import {
   InterviewAntwoordSchema,
   SectieSchema,
   VraagSchema,
+  ZoekantwoordSchema,
   type ApiFout,
   type CompleteModuleSpec,
   type GeneratedContent,
@@ -20,6 +21,7 @@ import {
   type ModuleSpec,
   type Sectie,
   type Vraag,
+  type Zoekantwoord,
 } from "./types";
 
 export type Resultaat<T> =
@@ -224,6 +226,22 @@ export async function verwijderProject(id: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/* ---------------------------------------------------------------- media zoeken */
+
+/**
+ * Beeld of video zoeken bij de ingestelde bronnen.
+ *
+ * `aantal` is hoeveel keuzes er per soort terugkomen; de route kapt hem af op wat hij aankan.
+ * Een bron zonder sleutel is geen fout — dan staat hij in `ontbrekend` en zoekt de rest gewoon.
+ */
+export function zoekMedia(
+  term: string,
+  soorten: ("afbeelding" | "video" | "externe-video")[],
+  aantal: number,
+): Promise<Resultaat<Zoekantwoord>> {
+  return postJson<Zoekantwoord>("/api/media/zoek", { term, soorten, aantal }, ZoekantwoordSchema);
 }
 
 /* --------------------------------------------------------------------- export */

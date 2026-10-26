@@ -7,11 +7,12 @@
 import { cn } from "@ob/ui";
 import { Merkteken, Woordmerk } from "./Merkteken";
 
-export type Fase = "interview" | "genereren" | "resultaat";
+export type Fase = "interview" | "genereren" | "beeld" | "resultaat";
 
 const FASE_LABEL: Record<Fase, string> = {
   interview: "Interview",
   genereren: "Bouwen…",
+  beeld: "Beeld kiezen",
   resultaat: "Klaar",
 };
 
@@ -19,6 +20,8 @@ const FASE_LABEL: Record<Fase, string> = {
 const FASE_TONE: Record<Fase, string> = {
   interview: "bg-flow-wash text-flow-ink",
   genereren: "bg-bloom-wash text-bloom-ink",
+  // Beeld kiezen is nog bezig, net als bouwen: Flow, niet Glow — dat laatste betekent voltooid.
+  beeld: "bg-flow-wash text-flow-ink",
   resultaat: "bg-glow-wash text-glow-ink",
 };
 

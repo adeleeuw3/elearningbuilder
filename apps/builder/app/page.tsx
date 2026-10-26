@@ -17,6 +17,8 @@ import { Foutmelding } from "../components/interview/Foutmelding";
 import { InvoerZone } from "../components/interview/InvoerZone";
 import { Thread } from "../components/interview/Thread";
 import { Voortgangspips } from "../components/interview/Voortgangspips";
+import { Beeldkeuze } from "../components/interview/Beeldkeuze";
+import { beeldstappen, type Beeldkeuzes } from "../lib/beeldkeuze";
 import { Resultaat } from "../components/resultaat/Resultaat";
 import { Startscherm } from "../components/Startscherm";
 import { Beheer } from "../components/Beheer";
@@ -40,6 +42,7 @@ import {
   type ApiFout,
   type BevestigAntwoord,
   type CompleteModuleSpec,
+  type Fase,
   type GeneratedContent,
   type GesprekRegel,
   type ModuleSpec,
@@ -56,7 +59,9 @@ export default function InterviewPage() {
   const [openVraag, setOpenVraag] = React.useState<OpenVraag>(null);
   const [bezig, setBezig] = React.useState(false);
   const [fout, setFout] = React.useState<{ bericht: string; code: ApiFout["code"] } | null>(null);
-  const [fase, setFase] = React.useState<"interview" | "genereren" | "resultaat">("interview");
+  // De fase staat als type in `lib/types.ts`; hem hier overtypen betekende dat een nieuwe fase
+  // op twee plekken moest en de ene het stilletjes zonder de andere deed.
+  const [fase, setFase] = React.useState<Fase>("interview");
   const [kiesAanpassing, setKiesAanpassing] = React.useState(false);
   const [content, setContent] = React.useState<GeneratedContent | null>(null);
   /** Wat er uit de opslag kwam: het leerpad en het id waaronder het bewaard staat. */
@@ -70,6 +75,13 @@ export default function InterviewPage() {
    */
   const [scherm, setScherm] = React.useState<"bouwen" | "beheer" | "profiel">("bouwen");
   const [volledigeSpec, setVolledigeSpec] = React.useState<CompleteModuleSpec | null>(null);
+  /**
+   * De beelden die de auteur na het bouwen bij de secties koos.
+   *
+   * Hier en niet in `content`: het zijn bestanden, geen tekst, en ze horen op de knopen van de
+   * graaf. `Resultaat` zet ze erop zodra hij die graaf bouwt.
+   */
+  const [beelden, setBeelden] = React.useState<Beeldkeuzes>({});
 
   /**
    * De laatste aanvraag, zodat "Opnieuw proberen" precies dat opnieuw doet. In een ref omdat de
@@ -92,8 +104,13 @@ export default function InterviewPage() {
       return; // blijft in fase "genereren" met de foutmelding en een retry
     }
     // `correct` is een index en JSON Schema kan die grens niet afdwingen — hier rechttrekken.
-    setContent(normaliseerContent(res.data));
-    setFase("resultaat");
+    const nieuw = normaliseerContent(res.data);
+    setContent(nieuw);
+    setBeelden({});
+    // Beeld kiezen zodra er secties zijn. Hoevéél er gevraagd wordt hangt af van wat de auteur
+    // koos — "weinig beeld" is niet hetzelfde als geen beeld, en de stap overslaan zou bij
+    // "weinig" nul afbeeldingen opleveren.
+    setFase(beeldstappen(nieuw, spec.beeldgebruik).length > 0 ? "beeld" : "resultaat");
   }, []);
 
   const doeBeurt = React.useCallback(
@@ -280,6 +297,20 @@ export default function InterviewPage() {
   const actiefVeld = openVraag?.status === "vraag" ? openVraag.veld : null;
   const pips = pipStatussen(moduleSpec, actiefVeld);
 
+  if (fase === "beeld" && content) {
+    return (
+      <Shell fase="beeld" navigatie={navigatie}>
+        <Beeldkeuze
+          stappen={beeldstappen(content, volledigeSpec?.beeldgebruik)}
+          onKlaar={(keuzes) => {
+            setBeelden(keuzes);
+            setFase("resultaat");
+          }}
+        />
+      </Shell>
+    );
+  }
+
   if (fase === "genereren") {
     return (
       <Shell fase="genereren">
@@ -308,6 +339,7 @@ export default function InterviewPage() {
           onChange={setContent}
           onNieuweModule={beginOpnieuw}
           projectId={uitOpslag?.id ?? null}
+          beelden={beelden}
           {...(uitOpslag?.leerpad ? { beginLeerpad: uitOpslag.leerpad } : {})}
         />
       </Shell>

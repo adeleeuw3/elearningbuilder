@@ -47,9 +47,14 @@ Schrijf in het Nederlands, in de gevraagde toon, afgestemd op doelgroep en leerd
 Gebruik uitsluitend de gevraagde vraagvormen.
 
 Antwoord UITSLUITEND met geldige JSON:
-{"titel":"...","intro":"...","secties":[{"kop":"...","tekst":"...","type":"uitleg"}],
+{"titel":"...","intro":"...","secties":[{"kop":"...","tekst":"...","type":"uitleg","beeldterm":"..."}],
 "vragen":[{"vraagvorm":"...","vorm":"keuze","vraag":"...","opties":["..."],"correct":0,"feedback":"..."}],
 "samenvatting":"..."}
+
+Elke sectie krijgt een "beeldterm": 2 tot 4 **Engelse** trefwoorden die beschrijven wat een
+foto bij die sectie zou moeten tonen — concreet en zichtbaar, geen abstracties. Dus
+"office chair posture" of "warehouse lifting box", niet "ergonomics" of "safety awareness".
+Engels omdat de stockbronnen daarop indexeren; de rest van je antwoord blijft Nederlands.
 
 Elke vraag heeft een "vorm":
 - "keuze" — een vraag met antwoordopties en één juist antwoord. Vul "opties" met minstens twee
