@@ -144,7 +144,19 @@ export const InteractionType = z.enum([
   "other",
 ]);
 
-export const Choice = z.object({ id: z.string().min(1), text: LangMap }).strict();
+/**
+ * One answer option.
+ *
+ * `feedback` is what the learner reads after picking *this* option — not after being right or
+ * wrong. That distinction is the whole point: "je koos C; begrijpelijk, want die lijkt op de regel
+ * bij ziekteverzuim, maar daar geldt..." teaches something, while one message shared by every
+ * wrong answer only confirms the verdict.
+ *
+ * In a scenario it carries the consequence: what happens if you do this.
+ */
+export const Choice = z
+  .object({ id: z.string().min(1), text: LangMap, feedback: LangMap.optional() })
+  .strict();
 
 /** Sanitized rich content. `html` MUST be sanitized on save AND on render — never trusted. */
 export const RichContent = z
@@ -194,6 +206,13 @@ export const Assessment = z
       .object({ correct: LangMap.optional(), incorrect: LangMap.optional() })
       .strict()
       .optional(),
+    /**
+     * What the learner reads after the consequence, whatever they chose.
+     *
+     * Only meaningful on a scenario: the point of a case is not the verdict but what you take from
+     * it. A question does not have one — there the per-option feedback is the lesson.
+     */
+    debrief: LangMap.optional(),
   })
   .strict();
 

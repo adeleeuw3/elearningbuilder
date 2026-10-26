@@ -53,7 +53,8 @@ Gebruik uitsluitend de gevraagde vraagvormen.
 
 Antwoord UITSLUITEND met geldige JSON:
 {"titel":"...","intro":"...","secties":[{"kop":"...","tekst":"...","type":"uitleg","beeldterm":"...","extra":{...}}],
-"vragen":[{"vraagvorm":"...","vorm":"keuze","vraag":"...","opties":["..."],"correct":0,"feedback":"..."}],
+"vragen":[{"vraagvorm":"...","vorm":"keuze","vraag":"...","opties":["..."],"correct":0,"feedback":"...",
+            "uitlegPerOptie":["...","..."]}],
 "samenvatting":"..."}
 
 Elke sectie krijgt een "beeldterm": 2 tot 4 **Engelse** trefwoorden die beschrijven wat een
@@ -91,6 +92,14 @@ module, waarvan minstens één citaat. Meer mag; niet elke sectie hoeft er een.
     Alleen als de sectie écht uit stappen of fasen bestaat. Minstens twee, hoogstens zes.
     De stappen dragen de inhoud; houd "tekst" van die sectie kort — twee zinnen die ze inleiden.
     Nummer de koppen NIET ("Onrust", niet "1. Onrust"): de speler toont de stapnummers zelf.
+
+  {"vorm":"scenario","situatie":"...","opties":[{"tekst":"...","gevolg":"...","voorkeur":false},...],
+   "nabespreking":"..."}
+    Een korte situatie uit het werk van de doelgroep waarin de cursist kiest wat hij doet. Drie
+    opties, elk met een geloofwaardig gevolg — niet "fout", maar wat er dán gebeurt. Precies één
+    optie heeft "voorkeur": true. "nabespreking" is wat je eruit meeneemt, ongeacht je keuze.
+    Gebruik dit na een sectie die een principe uitlegt: eerst begrijpen, dan toepassen. Dit is de
+    enige vorm waarin de cursist iets dóét, dus laat hem niet links liggen.
 
   {"vorm":"beeld","beeldterm":"..."}
     Een beeld over de volle breedte ná de tekst, als adempauze. "beeldterm" is 2-4 Engelse

@@ -30,7 +30,7 @@ import type { Bestand } from "./bestand";
 import { paginasVan } from "./paginas";
 import type { Leerpad } from "./graph";
 import { EXTENSIE, idUitUrl } from "./opslag";
-import type { GeneratedContent, Vraag } from "./types";
+import type { Extra, GeneratedContent, Vraag } from "./types";
 
 /** De taal van wat deze builder maakt. Eén plek, zodat er geen tweede ontstaat. */
 export const TAAL = "nl-NL";
@@ -309,10 +309,18 @@ function blokVan(
   if (alt) blok.altText = tekstKaart(alt);
 
   if (soort === "question") {
-    const vraag = knoop.index !== null ? content.vragen[knoop.index] : undefined;
-    const assessment = assessmentVan(knoop, vraag);
-    if (assessment) blok.assessment = assessment;
-    else redenen.push(`Kennischeck "${naam}" heeft nog geen vraag met antwoorden.`);
+    if (knoop.bron === "scenario") {
+      // Een scenario is een kennischeck, maar zijn inhoud staat bij de sectie waar hij op volgt.
+      const extra = knoop.index !== null ? content.secties[knoop.index]?.extra : undefined;
+      const assessment = scenarioAssessment(extra);
+      if (assessment) blok.assessment = assessment;
+      else redenen.push(`Scenario "${naam}" is nog niet af: het mist een situatie of keuzes.`);
+    } else {
+      const vraag = knoop.index !== null ? content.vragen[knoop.index] : undefined;
+      const assessment = assessmentVan(knoop, vraag);
+      if (assessment) blok.assessment = assessment;
+      else redenen.push(`Kennischeck "${naam}" heeft nog geen vraag met antwoorden.`);
+    }
   }
 
 
@@ -447,7 +455,16 @@ function assessmentVan(
   return {
     interactionType: VRAAGVORM_INTERACTIE[vorm] ?? "other",
     prompt: tekstKaart(vraag.vraag),
-    choices: vraag.opties.map((tekst, i) => ({ id: ids[i] ?? `c${i}`, text: tekstKaart(tekst) })),
+    // De uitleg per optie hangt aan de optie zelf: de speler toont hem nadat er gekozen is, en
+    // dan is "waarom juist dít antwoord aantrekkelijk was" nuttiger dan één tekst voor alles.
+    choices: vraag.opties.map((tekst, i) => {
+      const uitleg = vraag.uitlegPerOptie?.[i]?.trim();
+      return {
+        id: ids[i] ?? `c${i}`,
+        text: tekstKaart(tekst),
+        ...(uitleg ? { feedback: tekstKaart(uitleg) } : {}),
+      };
+    }),
     correctResponsesPattern: [ids[vraag.correct] ?? `c${vraag.correct}`],
     ...(vraag.feedback.trim()
       ? {
@@ -457,6 +474,38 @@ function assessmentVan(
           },
         }
       : {}),
+  };
+}
+
+/**
+ * Een scenario als assessment.
+ *
+ * Vorm van een keuzevraag, inhoud van een casus: de prompt is de situatie, elke optie draagt zijn
+ * eigen gevolg, en de nabespreking komt erna — ongeacht wat er gekozen is.
+ *
+ * Er ís een voorkeursantwoord, en dat is geen schoolmeesterij maar een eis van de rapportage:
+ * zonder juist antwoord valt er geen `success` te melden en wordt de uitkomst van een scenario
+ * onzichtbaar in de LRS. `bruikbareExtra` heeft al afgedwongen dat er precies één is.
+ */
+function scenarioAssessment(extra: Extra | undefined): Record<string, unknown> | null {
+  const opties = extra?.opties ?? [];
+  const situatie = (extra?.situatie ?? "").trim();
+  if (extra?.vorm !== "scenario" || !situatie || opties.length < 2) return null;
+
+  const juist = opties.findIndex((o) => o.voorkeur);
+  if (juist < 0) return null;
+
+  const nabespreking = (extra.nabespreking ?? "").trim();
+  return {
+    interactionType: "choice",
+    prompt: tekstKaart(situatie),
+    choices: opties.map((o, i) => ({
+      id: `c${i}`,
+      text: tekstKaart(o.tekst),
+      ...(o.gevolg.trim() ? { feedback: tekstKaart(o.gevolg.trim()) } : {}),
+    })),
+    correctResponsesPattern: [`c${juist}`],
+    ...(nabespreking ? { debrief: tekstKaart(nabespreking) } : {}),
   };
 }
 

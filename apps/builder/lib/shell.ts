@@ -362,6 +362,17 @@ h2 { font-size: 20px; line-height: 1.3; margin: 0 0 8px; }
 .optie[aria-pressed="true"] { background: var(--flow-wash); border-color: var(--flow); }
 .optie[data-juist="ja"] { background: var(--glow-wash); border-color: var(--glow-ink); }
 .feedback { margin-top: 12px; padding: 12px; border-radius: 4px; background: var(--glow-wash); color: var(--glow-ink); }
+/* Uitleg bij een antwoord dat niet het juiste was. Rustig en niet rood: Prism kent geen rood, en
+   deze tekst hoort te verklaren, niet te bestraffen. */
+.feedback-mis {
+  margin-top: 12px; padding: 12px 14px; border-radius: 4px;
+  background: var(--nadruk-rustig); color: var(--ink-soft); border-left: 3px solid var(--stroke-sterk);
+}
+/* De nabespreking van een scenario: wat je meeneemt, los van wat je koos. */
+.nabespreking {
+  margin-top: 10px; padding: 12px 14px; border-radius: 4px;
+  background: var(--flow-wash); color: var(--ink); font-size: 14.5px;
+}
 
 .open textarea {
   width: 100%; min-height: 96px; resize: vertical; font: inherit; color: var(--ink);
@@ -1120,8 +1131,15 @@ export const APP_JS = `
             correctResponsesPattern: a.correctResponsesPattern,
           });
         }
-        var fb = a.feedback && (goed ? a.feedback.correct : a.feedback.incorrect);
-        if (fb) binnen.appendChild(el("div", "feedback", tekst(fb)));
+        // Eerst wat er van déze keuze komt. Dat is de les; het oordeel is bijzaak. Staat er geen
+        // uitleg bij de optie, dan valt hij terug op de ene feedbacktekst van de vraag.
+        var perOptie = tekst(keuze.feedback);
+        var fb = perOptie || (a.feedback && tekst(goed ? a.feedback.correct : a.feedback.incorrect));
+        if (fb) binnen.appendChild(el("div", goed ? "feedback" : "feedback-mis", fb));
+        // De nabespreking van een scenario komt erna, ongeacht de keuze: het punt van een casus is
+        // niet het oordeel maar wat je eruit meeneemt.
+        var na = tekst(a.debrief);
+        if (na) binnen.appendChild(el("div", "nabespreking", na));
         werkTikBij(blok);
         bewaarVoortgang();
         werkBalkBij();

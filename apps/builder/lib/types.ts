@@ -198,7 +198,7 @@ export type InterviewAntwoord = z.infer<typeof InterviewAntwoordSchema>;
  */
 export const ExtraSchema = z
   .object({
-    vorm: z.enum(["citaat", "carrousel", "beeld"]),
+    vorm: z.enum(["citaat", "carrousel", "beeld", "scenario"]),
     /**
      * Bij `citaat`: het uitgelichte kernprincipe.
      *
@@ -211,6 +211,30 @@ export const ExtraSchema = z
     stappen: z.array(z.object({ kop: z.string(), tekst: z.string() }).strict()).optional(),
     /** Bij `beeld`: waar het volle-breedte beeld over moet gaan, in het Engels. */
     beeldterm: z.string().optional(),
+    /**
+     * Bij `scenario`: een situatie waarin de cursist kiest en ziet wat daarvan komt.
+     *
+     * Dit is het enige blok waarin iemand iets dóét in plaats van leest. `situatie` schetst het
+     * geval, elke optie draagt zijn eigen `gevolg` — wat er gebeurt als je dít doet — en
+     * `nabespreking` is wat je eruit meeneemt, ongeacht je keuze.
+     *
+     * `voorkeur` wijst de beste reactie aan. Niet omdat de rest "fout" is, maar omdat de LRS iets
+     * moet kunnen rapporteren: zonder juist antwoord is er geen `success` te melden en wordt de
+     * uitkomst van een scenario onzichtbaar in elke rapportage.
+     */
+    situatie: z.string().optional(),
+    opties: z
+      .array(
+        z
+          .object({
+            tekst: z.string(),
+            gevolg: z.string(),
+            voorkeur: z.boolean(),
+          })
+          .strict(),
+      )
+      .optional(),
+    nabespreking: z.string().optional(),
   })
   .strict();
 
@@ -261,6 +285,15 @@ export const VraagSchema = z
     /** Index in `opties` van het juiste antwoord. Zonder betekenis bij een open vraag. */
     correct: z.number().int(),
     feedback: z.string(),
+    /**
+     * Per antwoordoptie waarom die goed of mis is, in dezelfde volgorde als `opties`.
+     *
+     * Eén feedbacktekst voor élk fout antwoord bevestigt alleen het oordeel. Uitleg per optie
+     * vertelt waaróm juist dít antwoord aantrekkelijk was en waar het misgaat — dat is wat een
+     * docent doet. Optioneel, want een model dat het veld overslaat levert nog steeds een
+     * bruikbare vraag.
+     */
+    uitlegPerOptie: z.array(z.string()).optional(),
   })
   .strict();
 

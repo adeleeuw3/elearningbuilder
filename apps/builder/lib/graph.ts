@@ -89,8 +89,12 @@ export interface Knoop {
    * en zou `soort === "uitleg" && index === null` niet meer te onderscheiden zijn — de kaart zou
    * dan naar het verkeerde veld schrijven. Vandaar deze expliciete markering: hij overleeft
    * hernoemen en er valt niets uit af te leiden wat er niet in staat.
+   *
+   * `scenario` is er later bij gekomen en doet hetzelfde werk: zo'n knoop is een kennischeck,
+   * maar zijn inhoud staat in `secties[index].extra` en niet in `vragen[index]`. Zonder deze
+   * markering zou de export in de verkeerde lijst kijken en een scenario als lege vraag afleveren.
    */
-  bron?: "intro" | "samenvatting";
+  bron?: "intro" | "samenvatting" | "scenario";
   /**
    * Het xAPI-werkwoord van een kennischeck. Komt uit `VERBS` in `@ob/schema` — niet uit een
    * overgetypte lijst, want dan lopen de authoring-kant en de runtime uit elkaar.
@@ -347,6 +351,16 @@ export function bruikbareExtra(extra: Extra | undefined): Extra | undefined {
     );
     return stappen.length >= 2 ? { ...extra, stappen } : undefined;
   }
+  if (extra.vorm === "scenario") {
+    const opties = (extra.opties ?? []).filter((o) => o.tekst.trim().length > 0);
+    // Twee opties is het minimum om te kiezen; zonder voorkeur valt er niets te rapporteren,
+    // want dan heeft het scenario geen uitkomst die de LRS kan vastleggen.
+    if (opties.length < 2) return undefined;
+    if (!(extra.situatie ?? "").trim()) return undefined;
+    const voorkeur = opties.filter((o) => o.voorkeur).length;
+    if (voorkeur !== 1) return undefined;
+    return { ...extra, opties };
+  }
   return extra; // beeld: de beeldterm mag leeg zijn, de auteur zoekt zelf
 }
 
@@ -572,6 +586,28 @@ export function bouwLeerpad(
         // Zonder bestand is hij niet af: de beeldkeuze of het whiteboard moet er nog een bij
         // zoeken, en de export weigert een beeld zonder alt-tekst.
         klaar: false,
+      });
+      return;
+    }
+
+    if (extra.vorm === "scenario") {
+      plaats({
+        ...basis,
+        id: `e${i}`,
+        // Een scenario is een kennischeck: er wordt gekozen, er is een voorkeursantwoord, en de
+        // LRS hoort te zien wat iemand koos. Wat het ánders maakt zit in de inhoud — een situatie
+        // in plaats van een vraag, een gevolg per optie in plaats van één oordeel.
+        soort: "toets",
+        bron: "scenario",
+        titel: `Scenario ${i + 1}`,
+        fragment: eersteRegel(extra.situatie ?? ""),
+        minuten: schatMinuten(
+          (extra.situatie ?? "") + (extra.opties ?? []).map((o) => o.tekst + o.gevolg).join(" "),
+          SECONDEN_PER_VRAAG,
+        ),
+        klaar: true,
+        xapiWerkwoord: VERBS.answered,
+        vraagvorm: "meerkeuze",
       });
       return;
     }
