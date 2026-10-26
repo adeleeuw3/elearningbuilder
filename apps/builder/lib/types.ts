@@ -180,6 +180,42 @@ export type InterviewAntwoord = z.infer<typeof InterviewAntwoordSchema>;
 
 /* ------------------------------------------------------------ gegenereerde content */
 
+/**
+ * Een bijzondere vorm bij een sectie.
+ *
+ * **Waarom dit er is.** De generator kende drie bouwstenen: proza, meerkeuze en open vraag. De
+ * speler kan meer — citaat, carrousel, volle-breedte beeld — maar het model kon er niet om vragen,
+ * dus kwam het er nooit in. Het resultaat was altijd dezelfde vorm: lezen, lezen, lezen, toets.
+ *
+ * **Plat met optionele velden, geen discriminated union.** Dit schema gaat als JSON Schema naar
+ * structured outputs, en die is kieskeurig over wat hij accepteert. Eén object met een `vorm` en
+ * velden die per vorm gevuld worden is saaier maar werkt; de route en `bouwLeerpad` controleren
+ * wat er bij welke vorm hoort te staan.
+ *
+ * **Geen `.min()` of `.max()` op `stappen`.** Structured outputs weigert `minItems` boven 1 en
+ * `maxItems`; het aantal wordt afgedwongen waar de knopen gemaakt worden. Zie de toelichting bij
+ * `SchrijfAntwoordSchema`.
+ */
+export const ExtraSchema = z
+  .object({
+    vorm: z.enum(["citaat", "carrousel", "beeld"]),
+    /**
+     * Bij `citaat`: het uitgelichte kernprincipe.
+     *
+     * **Zonder naam, en dus zonder bronvermelding.** Een uitspraak verzinnen en aan een echt
+     * persoon toeschrijven is het soort fout dat een module ongeloofwaardig maakt zodra iemand het
+     * natrekt. Een principe zonder naam doet visueel precies hetzelfde.
+     */
+    citaat: z.string().optional(),
+    /** Bij `carrousel`: de stappen. Minstens twee, anders valt hij terug op tekst. */
+    stappen: z.array(z.object({ kop: z.string(), tekst: z.string() }).strict()).optional(),
+    /** Bij `beeld`: waar het volle-breedte beeld over moet gaan, in het Engels. */
+    beeldterm: z.string().optional(),
+  })
+  .strict();
+
+export type Extra = z.infer<typeof ExtraSchema>;
+
 export const SectieSchema = z
   .object({
     kop: z.string(),
@@ -197,6 +233,12 @@ export const SectieSchema = z
      * en dan valt de beeldkeuze terug op de kop.
      */
     beeldterm: z.string().optional(),
+    /**
+     * De bijzondere vorm die bij deze sectie hoort. Zie `ExtraSchema`.
+     *
+     * Optioneel: niet elke sectie krijgt er een, en een module van vóór dit veld heeft ze niet.
+     */
+    extra: ExtraSchema.optional(),
   })
   .strict();
 

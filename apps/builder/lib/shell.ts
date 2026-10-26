@@ -320,6 +320,13 @@ h2 { font-size: 20px; line-height: 1.3; margin: 0 0 8px; }
   flex: 1 1 auto; aspect-ratio: 4 / 3; border-radius: var(--r);
   background: var(--flow-wash); border: 1px dashed var(--stroke-sterk);
 }
+/* Zonder beeldkolom: de tekst krijgt de volle breedte en de pijlen staan eronder, naast de
+   stipjes. Het gestippelde vlak vervalt — dat zou een beeld beloven dat er niet is. */
+.carrousel-geen { display: none; }
+.carrousel[data-zonder-beeld="ja"] { grid-template-columns: 1fr; gap: 16px; }
+.carrousel[data-zonder-beeld="ja"] > div:first-child { order: 2; }
+.carrousel[data-zonder-beeld="ja"] .carrousel-beeld { justify-content: center; gap: 16px; }
+.carrousel[data-zonder-beeld="ja"] .bolletjes { margin-top: 12px; }
 .stap {
   border: 0; background: var(--card); color: var(--ink); border-radius: 4px;
   width: 40px; height: 44px; flex: none; font: inherit; font-size: 18px; cursor: pointer;
@@ -975,7 +982,21 @@ export const APP_JS = `
     var stappen = bekeken[blok.id];
     var index = 0;
 
+    /*
+     * Heeft geen enkele stap een beeld, dan vervalt de beeldkolom.
+     *
+     * De carrousel toonde altijd een gestippeld vlak op de plek van het beeld. Met een geüpload
+     * beeld per stap klopt dat; sinds de generator carrousels máákt — en die hebben geen
+     * stapbeelden — staat er bij elke stap een groot leeg vak naast de tekst. Dat leest als een
+     * plaatje dat niet laadt, terwijl er niets mis is.
+     */
+    var heeftBeeld = items.some(function (item) {
+      var m = (item.content && item.content.media) || [];
+      return m.length > 0 && m[0].kind === "image";
+    });
+
     var raam = el("div", "carrousel");
+    if (!heeftBeeld) raam.setAttribute("data-zonder-beeld", "ja");
     var links = el("div");
     var beeld = el("div", "carrousel-beeld");
 
@@ -1021,7 +1042,8 @@ export const APP_JS = `
         vervanger.src = assetPad(media[0]);
         vervanger.alt = item.altText ? tekst(item.altText) : "";
       } else {
-        vervanger = el("div", "carrousel-leeg");
+        // Zonder beeldkolom is dit een onzichtbare tussenruimte, geen gestippeld vlak.
+        vervanger = el("div", heeftBeeld ? "carrousel-leeg" : "carrousel-geen");
       }
       beeld.replaceChild(vervanger, beeld.children[1]);
 

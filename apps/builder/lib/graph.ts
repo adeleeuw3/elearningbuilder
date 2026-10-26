@@ -10,7 +10,7 @@
  */
 import { VERBS } from "@ob/schema";
 import type { Bestand } from "./bestand";
-import type { GeneratedContent, Vraag } from "./types";
+import type { Extra, GeneratedContent, Vraag } from "./types";
 
 /**
  * De soorten blokken op het canvas.
@@ -328,6 +328,28 @@ function eersteRegel(tekst: string, max = 90): string {
  * één optie, een leeg antwoord of een `correct` buiten bereik komt er ongehinderd door. Dat is
  * precies wat het statusbolletje op de kaart moet verraden.
  */
+/**
+ * De extra zoals hij bruikbaar is, of niets.
+ *
+ * Het model kan een vorm noemen en de bijbehorende velden leeg laten. Zo'n extra stil doorlaten
+ * levert een leeg citaat of een carrousel met nul stappen op — een blok dat er is maar niets
+ * toont. Dan liever helemaal geen extra: de sectie blijft gewoon een alinea.
+ *
+ * Een carrousel van één stap is geen carrousel; er valt niets door te klikken. De exporter weigert
+ * hem ook, maar dat is te laat — dan heeft de auteur al een blok op zijn canvas staan.
+ */
+export function bruikbareExtra(extra: Extra | undefined): Extra | undefined {
+  if (!extra) return undefined;
+  if (extra.vorm === "citaat") return (extra.citaat ?? "").trim() ? extra : undefined;
+  if (extra.vorm === "carrousel") {
+    const stappen = (extra.stappen ?? []).filter(
+      (st) => st.kop.trim().length > 0 || st.tekst.trim().length > 0,
+    );
+    return stappen.length >= 2 ? { ...extra, stappen } : undefined;
+  }
+  return extra; // beeld: de beeldterm mag leeg zijn, de auteur zoekt zelf
+}
+
 export function vraagIsKlaar(vraag: Vraag): boolean {
   // Een open vraag heeft geen opties en geen goed antwoord; eisen dat hij ze heeft maakt hem
   // per definitie onaf, en dan blokkeert hij de export van de hele module.
@@ -496,6 +518,19 @@ export function bouwLeerpad(
   });
 
   content.secties.forEach((sectie, i) => {
+    const extra = bruikbareExtra(sectie.extra);
+
+    /*
+     * Ook een carrousel krijgt zijn alinea.
+     *
+     * Eerst verving de carrousel de uitleg — de inhoud zit immers in de stappen. Maar een echte
+     * generatie liet zien wat dat weggooit: het model schrijft een korte kadering ("Agressie
+     * ontstaat zelden uit het niets; er gaat vrijwel altijd een opbouw aan vooraf") en díe hoort
+     * vóór vier stappen te staan. Een stappenreeks zonder aanloop is een lijst, geen uitleg.
+     *
+     * Elke bijzondere vorm is dus een aanvulling, nooit een vervanging. Dat is ook één regel in
+     * plaats van twee.
+     */
     plaats({
       id: `s${i}`,
       soort: "uitleg",
@@ -505,6 +540,55 @@ export function bouwLeerpad(
       eigen: false,
       minuten: schatMinuten(sectie.tekst),
       klaar: sectie.kop.trim().length > 0 && sectie.tekst.trim().length > 0,
+    });
+
+    if (!extra) return;
+
+    // De extra draagt de index van zijn sectie, net als de sectie zelf: zo weet de beeldkeuze bij
+    // welke sectie hij hoort en blijft de koppeling staan als de auteur de keten herschikt.
+    const basis = { index: i, eigen: false as const };
+
+    if (extra.vorm === "citaat") {
+      plaats({
+        ...basis,
+        id: `e${i}`,
+        soort: "citaat",
+        titel: eersteRegel(extra.citaat ?? "") || sectie.kop,
+        fragment: "",
+        minuten: 0,
+        klaar: (extra.citaat ?? "").trim().length > 0,
+      });
+      return;
+    }
+
+    if (extra.vorm === "beeld") {
+      plaats({
+        ...basis,
+        id: `e${i}`,
+        soort: "afbeelding",
+        titel: sectie.kop,
+        fragment: "",
+        minuten: 0,
+        // Zonder bestand is hij niet af: de beeldkeuze of het whiteboard moet er nog een bij
+        // zoeken, en de export weigert een beeld zonder alt-tekst.
+        klaar: false,
+      });
+      return;
+    }
+
+    plaats({
+      ...basis,
+      id: `e${i}`,
+      soort: "carrousel",
+      titel: sectie.kop,
+      fragment: eersteRegel(sectie.tekst),
+      minuten: schatMinuten((extra.stappen ?? []).map((st) => st.kop + " " + st.tekst).join(" ")),
+      klaar: true,
+      items: (extra.stappen ?? []).map((st, n) => ({
+        id: `i${n + 1}`,
+        kop: st.kop,
+        tekst: st.tekst,
+      })),
     });
   });
 

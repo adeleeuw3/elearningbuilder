@@ -646,7 +646,9 @@ export type Tekstbron =
   | { soort: "samenvatting" }
   | { soort: "sectie"; index: number }
   /** Een gegenereerde open vraag: zijn tekst staat in `content.vragen[index].vraag`. */
-  | { soort: "vraag"; index: number };
+  | { soort: "vraag"; index: number }
+  /** Een gegenereerd citaat: zijn tekst staat in `content.secties[index].extra.citaat`. */
+  | { soort: "citaat"; index: number };
 
 export function tekstbron(knoop: Knoop): Tekstbron | null {
   // Eerst `eigen`: een zelf geplaatst blok draagt zijn tekst altijd zelf, wat zijn soort ook is.
@@ -665,6 +667,11 @@ export function tekstbron(knoop: Knoop): Tekstbron | null {
   if (knoop.soort === "reflectie" && knoop.index !== null) {
     return { soort: "vraag", index: knoop.index };
   }
+  // Een gegenereerd citaat hoort bij de sectie waar het uit voortkomt; zijn tekst staat daar, net
+  // als die van de sectie zelf. Zo blijft er één plek waar hij staat.
+  if (knoop.soort === "citaat" && knoop.index !== null) {
+    return { soort: "citaat", index: knoop.index };
+  }
   return null;
 }
 
@@ -676,6 +683,7 @@ export function leesTekst(knoop: Knoop, content: GeneratedContent): string | nul
   if (bron.soort === "intro") return content.intro;
   if (bron.soort === "samenvatting") return content.samenvatting;
   if (bron.soort === "vraag") return content.vragen[bron.index]?.vraag ?? "";
+  if (bron.soort === "citaat") return content.secties[bron.index]?.extra?.citaat ?? "";
   return content.secties[bron.index]?.tekst ?? "";
 }
 
@@ -695,6 +703,16 @@ export function contentMetTekst(
   if (!bron || bron.soort === "knoop") return null;
   if (bron.soort === "intro") return { ...content, intro: tekst };
   if (bron.soort === "samenvatting") return { ...content, samenvatting: tekst };
+  if (bron.soort === "citaat") {
+    const sectie = content.secties[bron.index];
+    if (!sectie?.extra) return null;
+    return {
+      ...content,
+      secties: content.secties.map((sec, i) =>
+        i === bron.index && sec.extra ? { ...sec, extra: { ...sec.extra, citaat: tekst } } : sec,
+      ),
+    };
+  }
   if (bron.soort === "vraag") {
     if (!content.vragen[bron.index]) return null;
     return {
@@ -810,6 +828,9 @@ export function zetPaginaTitel(leerpad: Leerpad, knoopId: string, titel: string)
  * structuur die het gereedschap zélf eiste. In het huidige model hoort elk blok bij een pagina en
  * bestaat een lege pagina niet, dus die drie kunnen niet meer voorkomen.
  */
+/** De vormen die als afwisseling tellen: ze breken de kolom met lopende tekst. */
+const BIJZONDERE_VORMEN = new Set(["citaat", "carrousel", "afbeelding", "video", "audio"]);
+
 export type ProbleemCode =
   | "cyclus"
   | "leeg-blok"
@@ -817,7 +838,8 @@ export type ProbleemCode =
   | "dubbele-voorwaarde"
   | "ai-zonder-doel"
   | "kennischeck-zonder-werkwoord"
-  | "beeld-zonder-alt";
+  | "beeld-zonder-alt"
+  | "weinig-afwisseling";
 
 export interface Probleem {
   code: ProbleemCode;
@@ -906,6 +928,31 @@ export function controleerLeerpad(leerpad: Leerpad): Probleem[] {
         bericht: `Kennischeck "${k.titel}" heeft geen xAPI-werkwoord, dus er wordt niets over gemeld.`,
       });
     }
+  }
+
+  /*
+   * Afwisseling is een streefgetal, geen eis.
+   *
+   * Een module van alleen alinea's leest als een handleiding, en drie bijzondere vormen met
+   * minstens één citaat is de maat die we aanhouden. Maar het is vormgeving, geen correctheid: een
+   * auteur die bewust een carrousel weghaalt hoort niet geblokkeerd te worden. Vandaar `let-op`,
+   * en geen `knoopId` — dit gaat over de module als geheel, niet over één blok.
+   */
+  const inhoud = leerpad.knopen.filter(isInhoud);
+  const bijzonder = inhoud.filter((k) => BIJZONDERE_VORMEN.has(k.soort));
+  const heeftCitaat = bijzonder.some((k) => k.soort === "citaat");
+  // Pas vanaf vier inhoudsblokken: een module die je net begonnen bent hoort geen opmerking te
+  // krijgen over afwisseling die er nog niet in kán zitten.
+  if (inhoud.length >= 4 && (bijzonder.length < 3 || !heeftCitaat)) {
+    const wat = [
+      bijzonder.length < 3 ? `${bijzonder.length} van de 3 bijzondere vormen` : null,
+      heeftCitaat ? null : "geen citaat",
+    ].filter(Boolean);
+    problemen.push({
+      code: "weinig-afwisseling",
+      ernst: "let-op",
+      bericht: `Weinig afwisseling: ${wat.join(", ")}. Een beeld, citaat of carrousel breekt de tekst.`,
+    });
   }
 
   const gezien = new Set<string>();

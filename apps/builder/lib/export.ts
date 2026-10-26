@@ -316,6 +316,17 @@ function blokVan(
   }
 
 
+  /*
+   * Een beeldblok zonder beeld is een leeg vlak.
+   *
+   * `content.html` is bij deze soort leeg — de tekst staat in de sectie ernaast — dus als er ook
+   * geen bestand is, exporteert dit als een sectie waar niets in staat. Niets faalt; er is alleen
+   * niets te zien. Dezelfde fout als een citaat zonder tekst, en die wordt hieronder al geweigerd.
+   */
+  if (soort === "media" && (blok.content as { media: unknown[] }).media.length === 0) {
+    redenen.push(`Beeld "${naam}" heeft nog geen afbeelding.`);
+  }
+
   if (soort === "quote") {
     if (!tekst.trim()) redenen.push(`Citaat "${naam}" heeft nog geen tekst.`);
     const bron = knoop.bronvermelding?.trim();

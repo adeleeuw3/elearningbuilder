@@ -52,7 +52,7 @@ Schrijf in het Nederlands, in de gevraagde toon, afgestemd op doelgroep en leerd
 Gebruik uitsluitend de gevraagde vraagvormen.
 
 Antwoord UITSLUITEND met geldige JSON:
-{"titel":"...","intro":"...","secties":[{"kop":"...","tekst":"...","type":"uitleg","beeldterm":"..."}],
+{"titel":"...","intro":"...","secties":[{"kop":"...","tekst":"...","type":"uitleg","beeldterm":"...","extra":{...}}],
 "vragen":[{"vraagvorm":"...","vorm":"keuze","vraag":"...","opties":["..."],"correct":0,"feedback":"..."}],
 "samenvatting":"..."}
 
@@ -71,7 +71,35 @@ Elke vraag heeft een "vorm":
 Gebruik "open" alleen als er om reflectie- of open vragen is gevraagd, en hooguit voor een enkele
 vraag — de rest blijft "keuze".
 
-Maak 2-4 secties en 3-6 vragen, passend bij de gevraagde lengte. Feedback is leerzaam, niet enkel goed/fout.`;
+Hoeveel secties hangt af van de gevraagde lengte:
+  ~5 minuten  → 2-3 secties, 2-3 vragen
+  ~10 minuten → 3-5 secties, 3-5 vragen
+  ~20 minuten → 5-7 secties, 5-7 vragen
+  langer of meerdelig → 7-9 secties, 7-9 vragen
+
+AFWISSELING IN VORM
+Een module van alleen alinea's leest als een handleiding. Geef daarom secties een "extra": een
+bijzondere vorm die naast de uitleg op de pagina komt. Streef naar minstens drie extra's per
+module, waarvan minstens één citaat. Meer mag; niet elke sectie hoeft er een.
+
+  {"vorm":"citaat","citaat":"..."}
+    Eén zin die de kern van de sectie uitlicht. GEEN naam, GEEN bron, GEEN aanhalingstekens —
+    verzin nooit een uitspraak van een echt persoon. Schrijf een principe: "Onvoorwaardelijk
+    betekent: de relatie staat niet ter discussie, het gedrag wel."
+
+  {"vorm":"carrousel","stappen":[{"kop":"...","tekst":"..."},...]}
+    Alleen als de sectie écht uit stappen of fasen bestaat. Minstens twee, hoogstens zes.
+    De stappen dragen de inhoud; houd "tekst" van die sectie kort — twee zinnen die ze inleiden.
+    Nummer de koppen NIET ("Onrust", niet "1. Onrust"): de speler toont de stapnummers zelf.
+
+  {"vorm":"beeld","beeldterm":"..."}
+    Een beeld over de volle breedte ná de tekst, als adempauze. "beeldterm" is 2-4 Engelse
+    trefwoorden, net als het veld op de sectie zelf.
+
+Kies de vorm bij de inhoud, niet voor de afwisseling: een proces wordt een carrousel, een
+kernprincipe een citaat, een onderwerp dat je moet zien een beeld. Past er niets, laat "extra" weg.
+
+Feedback is leerzaam, niet enkel goed/fout.`;
 
 /**
  * System prompt voor het opnieuw genereren van één blok.

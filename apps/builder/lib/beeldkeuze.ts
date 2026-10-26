@@ -143,7 +143,13 @@ export function beeldstappen(
       index,
       kop: sectie.kop,
       fragment: fragmentVan(sectie.tekst),
-      term: zoektermVoorSectie(content.titel, sectie.kop, sectie.beeldterm),
+      // Heeft de sectie een beeld-extra, dan is díens term de bedoeling: die beschrijft wat er
+      // over de volle breedte moet staan, niet wat er naast de alinea past.
+      term: zoektermVoorSectie(
+        content.titel,
+        sectie.kop,
+        sectie.extra?.vorm === "beeld" ? (sectie.extra.beeldterm ?? sectie.beeldterm) : sectie.beeldterm,
+      ),
     }));
 }
 
@@ -157,15 +163,21 @@ export type Beeldkeuzes = Record<number, Bestand>;
  * wijst — en níét over de volgorde in de keten. Die volgorde verandert zodra de auteur iets
  * versleept, en dan zou het beeld meeschuiven naar een sectie waar het niet over gaat.
  *
- * Alleen `uitleg`-knopen die uit de generator komen: een blok dat de auteur zelf neerzette draagt
- * zijn eigen bestand, en dat overschrijven zou werk weggooien.
+ * Alleen knopen die uit de generator komen: een blok dat de auteur zelf neerzette draagt zijn
+ * eigen bestand, en dat overschrijven zou werk weggooien.
+ *
+ * Twee soorten krijgen beeld. Een `uitleg`-knoop toont het binnen de leeskolom, onder zijn tekst;
+ * een `afbeelding`-knoop — de beeld-extra — toont het over de volle breedte als adempauze. Welke
+ * van de twee er staat heeft het model bepaald, en beide horen bij dezelfde sectie-index.
  */
+const BEELDDRAGERS = new Set(["uitleg", "afbeelding"]);
+
 export function metBeelden(leerpad: Leerpad, beelden: Beeldkeuzes): Leerpad {
   if (Object.keys(beelden).length === 0) return leerpad;
   return {
     ...leerpad,
     knopen: leerpad.knopen.map((knoop: Knoop) => {
-      if (knoop.soort !== "uitleg" || knoop.eigen || knoop.index === null) return knoop;
+      if (!BEELDDRAGERS.has(knoop.soort) || knoop.eigen || knoop.index === null) return knoop;
       const bestand = beelden[knoop.index];
       return bestand ? { ...knoop, bestand } : knoop;
     }),

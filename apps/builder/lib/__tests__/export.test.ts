@@ -278,6 +278,22 @@ describe("alt-tekst", () => {
 /* -------------------------------------------------------------- componentsoorten */
 
 describe("componentsoorten", () => {
+  /**
+   * Een bestand voor de mediasoorten.
+   *
+   * Zonder bestand weigert de export zo'n blok, en terecht: `content.html` is bij media leeg, dus
+   * een blok zonder bestand is een sectie waar niets in staat. Deze tests gaan over de *vorm* die
+   * een knoop krijgt, dus geven ze hem wat hij nodig heeft om te mogen bestaan.
+   */
+  const BESTAND = {
+    naam: "steiger.png",
+    mime: "image/png",
+    grootte: 1234,
+    url: "/api/bestand/0123456789abcdef0123456789abcdef",
+    hercodeerd: true,
+    alt: "Een steiger met leuning.",
+  };
+
   /** Een knoop van deze soort achteraan de keten, met een eigen tekst. */
   const metKnoop = (soort: KnoopSoort, velden: Partial<Knoop> = {}) => {
     let l = bouw();
@@ -304,7 +320,10 @@ describe("componentsoorten", () => {
       ["reflectie", "open"],
     ];
     for (const [soort, vorm] of verwacht) {
-      const { l, seed } = metKnoop(soort, { uitvoer: "Waarom denk jij dat?" });
+      const { l, seed } = metKnoop(soort, {
+        uitvoer: "Waarom denk jij dat?",
+        ...(vorm === "media" ? { bestand: BESTAND } : {}),
+      });
       const blok = blokken(l).find((b) => b.id === seed)!;
       expect(blok.kind, `${soort} hoort ${vorm} te worden`).toBe(vorm);
     }
@@ -324,7 +343,7 @@ describe("componentsoorten", () => {
   });
 
   it("laat beeld van rand tot rand lopen en tekst in de leeskolom", () => {
-    const { l, seed } = metKnoop("afbeelding");
+    const { l, seed } = metKnoop("afbeelding", { bestand: BESTAND });
     expect(blokken(l).find((b) => b.id === seed)!.presentation.fullBleed).toBe(true);
     const tekstblok = blokken(l).find((b) => b.kind === "text")!;
     expect(tekstblok.presentation.fullBleed).toBe(false);
