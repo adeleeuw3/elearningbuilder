@@ -24,7 +24,11 @@ import { Startscherm } from "../components/Startscherm";
 import { Beheer } from "../components/Beheer";
 import { Navigatie } from "../components/Navigatie";
 import { Profiel } from "../components/Profiel";
-import { genereerContent, vraagVolgendeBeurt } from "../lib/api-client";
+import {
+  genereerContent,
+  vraagVolgendeBeurt,
+  type Bronmateriaal,
+} from "../lib/api-client";
 import { legeContent, normaliseerContent } from "../lib/content";
 import type { Leerpad } from "../lib/leerpad";
 import {
@@ -82,6 +86,22 @@ export default function InterviewPage() {
    * graaf. `Resultaat` zet ze erop zodra hij die graaf bouwt.
    */
   const [beelden, setBeelden] = React.useState<Beeldkeuzes>({});
+  /**
+   * Het aangeleverde bronmateriaal, als er een is.
+   *
+   * Alleen de náám gaat de spec in — die reist elke interviewbeurt mee, en een handboek van
+   * honderdduizend tekens bij elke vraag is traag en duur. De tekst blijft hier en gaat één keer
+   * mee, bij het genereren.
+   */
+  const [bron, setBron] = React.useState<Bronmateriaal | null>(null);
+  /**
+   * Dezelfde tekst, in een ref.
+   *
+   * `bouwModule` is een `useCallback` zonder afhankelijkheden — hij wordt bij het bevestigen
+   * aangeroepen en mag niet bij elke statewijziging opnieuw gemaakt worden. Via een ref leest hij
+   * de actuele bron zonder dat die in de afhankelijkheden hoeft.
+   */
+  const bronTekst = React.useRef<string | undefined>(undefined);
 
   /**
    * De laatste aanvraag, zodat "Opnieuw proberen" precies dat opnieuw doet. In een ref omdat de
@@ -98,7 +118,7 @@ export default function InterviewPage() {
     setFase("genereren");
     setFout(null);
 
-    const res = await genereerContent(spec);
+    const res = await genereerContent(spec, bronTekst.current);
     if (!res.ok) {
       setFout({ bericht: res.bericht, code: res.code });
       return; // blijft in fase "genereren" met de foutmelding en een retry
@@ -151,8 +171,13 @@ export default function InterviewPage() {
    */
   const STARTVRAAG = "Waar moet je module over gaan?";
 
-  function startInterview(onderwerp: string) {
-    const nieuweSpec = pasAntwoordToe(LEGE_MODULE_SPEC, "onderwerp", [onderwerp], "text");
+  function startInterview(onderwerp: string, bronmateriaal?: Bronmateriaal) {
+    setBron(bronmateriaal ?? null);
+    bronTekst.current = bronmateriaal?.tekst;
+    const metOnderwerp = pasAntwoordToe(LEGE_MODULE_SPEC, "onderwerp", [onderwerp], "text");
+    const nieuweSpec = bronmateriaal
+      ? { ...metOnderwerp, bronnaam: bronmateriaal.naam }
+      : metOnderwerp;
     const nieuwGesprek: GesprekRegel[] = [
       { rol: "ai", bericht: STARTVRAAG },
       { rol: "user", bericht: onderwerp },

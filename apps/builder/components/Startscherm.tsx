@@ -20,11 +20,17 @@
 import * as React from "react";
 import { Button, cn } from "@ob/ui";
 import { Merkteken, Woordmerk } from "./Merkteken";
-import { laadProject, lijstProjecten, type ProjectRegel } from "../lib/api-client";
+import {
+  laadProject,
+  leesBronmateriaal,
+  lijstProjecten,
+  type Bronmateriaal,
+  type ProjectRegel,
+} from "../lib/api-client";
 
 export interface StartschermProps {
-  /** Het onderwerp waarmee het interview begint. */
-  onStart: (onderwerp: string) => void;
+  /** Het onderwerp waarmee het interview begint, met eventueel bronmateriaal erbij. */
+  onStart: (onderwerp: string, bron?: Bronmateriaal) => void;
   /** Het interview overslaan en meteen zelf blokken gaan neerzetten. */
   onZelfBouwen: (onderwerp?: string) => void;
   /** Een bewaarde module openen. */
@@ -57,9 +63,36 @@ export function Startscherm({ onStart, onZelfBouwen, onOpen, navigatie }: Starts
     if (p) onOpen(id, p.doc);
   }
 
+  /**
+   * Het aangeleverde document, als er een is.
+   *
+   * Blijft in dit tabblad: de server bewaart hem niet. Hij reist mee naar het genereren en
+   * verdwijnt daarna — er is geen reden om het handboek van een klant op die machine te laten
+   * staan nadat de module gemaakt is.
+   */
+  const [bron, setBron] = React.useState<Bronmateriaal | null>(null);
+  const [leest, setLeest] = React.useState(false);
+  const [bronfout, setBronfout] = React.useState<string | null>(null);
+  const bestandRef = React.useRef<HTMLInputElement | null>(null);
+
+  async function kiesBestand(bestand: File | undefined) {
+    if (!bestand) return;
+    setLeest(true);
+    setBronfout(null);
+    const uit = await leesBronmateriaal(bestand);
+    setLeest(false);
+    // Het veld leegmaken, anders levert hetzelfde bestand opnieuw kiezen geen `change` meer op.
+    if (bestandRef.current) bestandRef.current.value = "";
+    if (!uit.ok) {
+      setBronfout(uit.bericht);
+      return;
+    }
+    setBron(uit.data);
+  }
+
   const verstuur = () => {
     if (leeg) return;
-    onStart(tekst.trim());
+    onStart(tekst.trim(), bron ?? undefined);
   };
 
   return (
@@ -133,6 +166,59 @@ export function Startscherm({ onStart, onZelfBouwen, onOpen, navigatie }: Starts
 
           {/* Het alternatief, bewust rustig: wie hier komt wil meestal het interview. Wat er al
               getypt is gaat mee als titel — dat scheelt het opnieuw intikken. */}
+          {/* Eigen materiaal. Onder de pil en rustig vormgegeven: het is een aanvulling, geen
+              voorwaarde — de meeste modules beginnen zonder. Geen HTML <form>: een verborgen
+              bestandsveld dat een knop aanstuurt (kwaliteitsvloer). */}
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <input
+              ref={bestandRef}
+              type="file"
+              accept=".docx,.txt,.md,.markdown"
+              className="sr-only"
+              onChange={(e) => void kiesBestand(e.target.files?.[0])}
+            />
+
+            {!bron && (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="text-[12.5px] text-ink-faint">Heb je eigen materiaal?</span>
+                <Button
+                  size="sm"
+                  role_="subtle"
+                  disabled={leest}
+                  onClick={() => bestandRef.current?.click()}
+                >
+                  {leest ? "Lezen…" : "Handboek of procedure toevoegen"}
+                </Button>
+              </div>
+            )}
+
+            {bron && (
+              <div
+                className={cn(
+                  "flex flex-wrap items-center justify-center gap-2 rounded-card",
+                  "border border-stroke bg-card px-3 py-2 text-[12.5px] shadow-elevation",
+                )}
+              >
+                <span className="font-semibold text-ink">{bron.naam}</span>
+                <span className="text-ink-faint">
+                  {bron.alineas} alinea{bron.alineas === 1 ? "" : "'s"} gelezen
+                  {/* Afkappen stilzwijgend laten gebeuren levert een module op die een hoofdstuk
+                      mist, en dat merkt niemand. */}
+                  {bron.afgekapt && " · alleen het begin, de rest valt buiten de limiet"}
+                </span>
+                <Button size="sm" role_="subtle" onClick={() => setBron(null)}>
+                  Weghalen
+                </Button>
+              </div>
+            )}
+
+            {bronfout && (
+              <p className="max-w-[46ch] rounded-control bg-bloom-wash px-3 py-2 text-[12.5px] leading-relaxed text-bloom-ink">
+                {bronfout}
+              </p>
+            )}
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <span className="text-[12.5px] text-ink-faint">Liever zelf bouwen?</span>
             <Button

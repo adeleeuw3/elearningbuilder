@@ -93,8 +93,14 @@ export function vraagVolgendeBeurt(
 
 export function genereerContent(
   moduleSpec: CompleteModuleSpec,
+  /** Het aangeleverde bronmateriaal. Apart van de spec: zie `GenerateRequestSchema`. */
+  brontekst?: string,
 ): Promise<Resultaat<GeneratedContent>> {
-  return postJson<GeneratedContent>("/api/generate", { moduleSpec }, GeneratedContentSchema);
+  return postJson<GeneratedContent>(
+    "/api/generate",
+    { moduleSpec, ...(brontekst?.trim() ? { brontekst } : {}) },
+    GeneratedContentSchema,
+  );
 }
 
 /** Eén sectie opnieuw laten schrijven. */
@@ -226,6 +232,51 @@ export async function verwijderProject(id: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/* ------------------------------------------------------------------ bronmateriaal */
+
+export interface Bronmateriaal {
+  naam: string;
+  soort: "docx" | "tekst";
+  /** De tekst met markdown-koppen, klaar om mee te geven aan het genereren. */
+  tekst: string;
+  alineas: number;
+  afgekapt: boolean;
+}
+
+/**
+ * Een document inlezen als bron voor de module.
+ *
+ * Niet via `postJson`: dit is multipart, geen JSON. De inhoud komt terug en blijft in dit
+ * tabblad — de server bewaart het document niet. Zie de route voor waarom.
+ */
+export async function leesBronmateriaal(bestand: File): Promise<Resultaat<Bronmateriaal>> {
+  const form = new FormData();
+  form.append("bestand", bestand);
+
+  let res: Response;
+  try {
+    res = await fetch("/api/document", { method: "POST", body: form });
+  } catch {
+    return { ok: false, bericht: "Geen verbinding met de server.", code: "onbekend" };
+  }
+
+  let payload: unknown;
+  try {
+    payload = await res.json();
+  } catch {
+    return { ok: false, bericht: ONBEKEND, code: "onbekend" };
+  }
+  if (!res.ok) {
+    const fout = payload as Partial<ApiFout>;
+    return {
+      ok: false,
+      bericht: fout.bericht ?? "Dit document kon niet gelezen worden.",
+      code: fout.code ?? "onbekend",
+    };
+  }
+  return { ok: true, data: payload as Bronmateriaal };
 }
 
 /* ---------------------------------------------------------------- media zoeken */

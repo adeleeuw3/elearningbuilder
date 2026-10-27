@@ -267,6 +267,13 @@ export const SectieSchema = z
      */
     beeldterm: z.string().optional(),
     /**
+     * Waar in het aangeleverde document deze sectie vandaan komt: de kop uit de bron.
+     *
+     * Zonder deze verwijzing is "het staat in het handboek" een bewering die niemand kan nakijken,
+     * en is grondmateriaal alleen een duurdere manier om te verzinnen. Leeg als er geen bron was.
+     */
+    bronverwijzing: z.string().optional(),
+    /**
      * De bijzondere vorm die bij deze sectie hoort. Zie `ExtraSchema`.
      *
      * Optioneel: niet elke sectie krijgt er een, en een module van vóór dit veld heeft ze niet.
