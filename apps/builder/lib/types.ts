@@ -33,6 +33,13 @@ export const ModuleSpecSchema = z
     beeldgebruik: z.string().nullable().default(null),
     /** Of er video in mag, en van welke soort. */
     video: z.string().nullable().default(null),
+    /**
+     * De naam van het aangeleverde document, als er een is.
+     *
+     * Alleen de naam — de tekst zelf gaat rechtstreeks naar het genereren. Dit staat in de spec
+     * zodat het interview weet dát er bronmateriaal is en daarnaar kan verwijzen.
+     */
+    bronnaam: z.string().nullable().default(null),
   })
   .strict();
 
@@ -51,6 +58,7 @@ export const CompleteModuleSpecSchema = z
     thema: z.string().nullable().default(null),
     beeldgebruik: z.string().nullable().default(null),
     video: z.string().nullable().default(null),
+    bronnaam: z.string().nullable().default(null),
   })
   .strict();
 
@@ -67,6 +75,7 @@ export const LEGE_MODULE_SPEC: ModuleSpec = {
   thema: null,
   beeldgebruik: null,
   video: null,
+  bronnaam: null,
 };
 
 /**
@@ -343,6 +352,13 @@ export const InterviewRequestSchema = z
 export const GenerateRequestSchema = z
   .object({
     moduleSpec: CompleteModuleSpecSchema,
+    /**
+     * Het aangeleverde bronmateriaal, als platte tekst met markdown-koppen.
+     *
+     * Apart van de spec en niet erin: de spec reist elke interviewbeurt mee, en een handboek van
+     * honderdduizend tekens bij elke vraag is traag en duur. Hij hoort alleen bij het genereren.
+     */
+    brontekst: z.string().optional(),
   })
   .strict();
 

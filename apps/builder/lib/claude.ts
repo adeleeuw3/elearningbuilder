@@ -179,6 +179,15 @@ function naarClaudeFout(fout: unknown): ClaudeFout {
     );
   }
   if (fout instanceof Anthropic.APIError) {
+    /*
+     * De eigen melding van de API naar het serverlog.
+     *
+     * Hij gaat níét naar de browser: zo'n bericht kan het schema of de prompt citeren, en dat is
+     * intern. Maar hem helemaal weggooien betekent dat een 400 — bijna altijd een schema dat
+     * structured outputs niet accepteert — alleen te zien is als "er ging iets mis". Dat kostte
+     * hier een half uur zoeken naar een oorzaak die in de melding zelf stond.
+     */
+    console.error(`[claude] ${fout.status}: ${fout.message}`);
     return new ClaudeFout(
       `De AI-dienst gaf een fout (${fout.status ?? "onbekend"}). Probeer het opnieuw.`,
       "onbekend",

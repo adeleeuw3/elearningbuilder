@@ -136,6 +136,7 @@ export function metDefaults(spec: ModuleSpec): CompleteModuleSpec | null {
     thema: spec.thema,
     beeldgebruik: spec.beeldgebruik,
     video: spec.video,
+    bronnaam: spec.bronnaam,
   };
 }
 

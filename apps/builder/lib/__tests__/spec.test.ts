@@ -29,6 +29,7 @@ const VOLLEDIG: ModuleSpec = {
   thema: null,
   beeldgebruik: null,
   video: null,
+  bronnaam: null,
 };
 
 /* -------------------------------------------------------------- pasAntwoordToe */

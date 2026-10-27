@@ -6,20 +6,16 @@
  */
 import { NextResponse } from "next/server";
 import { ClaudeFout, callGestructureerd } from "../../../lib/claude";
-import { GENERATIE_SYSTEM_PROMPT } from "../../../lib/prompts";
+import { GENERATIE_SYSTEM_PROMPT, bouwOpdracht } from "../../../lib/prompts";
 import {
   GeneratedContentSchema,
   GenerateRequestSchema,
   type ApiFout,
-  type CompleteModuleSpec,
 } from "../../../lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function bouwOpdracht(spec: CompleteModuleSpec): string {
-  return ["moduleSpec:", JSON.stringify(spec, null, 2)].join("\n");
-}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -41,7 +37,7 @@ export async function POST(request: Request) {
   try {
     const content = await callGestructureerd({
       system: GENERATIE_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: bouwOpdracht(invoer.data.moduleSpec) }],
+      messages: [{ role: "user", content: bouwOpdracht(invoer.data.moduleSpec, invoer.data.brontekst) }],
       schema: GeneratedContentSchema,
       // Dit is het inhoudelijke werk — hier telt kwaliteit boven snelheid.
       effort: "high",
